@@ -1,4 +1,4 @@
-// Questo codice va in un nuovo file: /netlify/functions/optimize-question.js
+// Questo è il nuovo codice per: /netlify/functions/optimize-question.js
 
 exports.handler = async function (event, context) {
   if (event.httpMethod !== 'POST') {
@@ -20,7 +20,7 @@ exports.handler = async function (event, context) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o-mini', // MODIFICATO: Usa il modello più economico
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2, // Molto preciso, poca creatività
         response_format: { type: "json_object" }, 
