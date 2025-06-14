@@ -22,7 +22,7 @@ exports.handler = async function (event, context) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // MODIFICATO: Usa il modello più economico
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         response_format: { type: "json_object" }, 
@@ -44,6 +44,7 @@ exports.handler = async function (event, context) {
 
     const contentPlan = JSON.parse(rawContent);
 
+    // Rendiamo più robusta l'estrazione dell'array
     let ideasArray = [];
     if (Array.isArray(contentPlan)) {
         ideasArray = contentPlan;
