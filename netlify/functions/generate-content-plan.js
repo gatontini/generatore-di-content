@@ -22,7 +22,7 @@ exports.handler = async function (event, context) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o-mini', // MODIFICATO: Usa il modello più economico
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         response_format: { type: "json_object" }, 
@@ -44,18 +44,14 @@ exports.handler = async function (event, context) {
 
     const contentPlan = JSON.parse(rawContent);
 
-    // Rendiamo più robusta l'estrazione dell'array
     let ideasArray = [];
     if (Array.isArray(contentPlan)) {
-        // Caso ideale: l'AI ha risposto con un array
         ideasArray = contentPlan;
     } else if (typeof contentPlan === 'object' && contentPlan !== null) {
-        // Cerca la prima chiave che contiene un array (es. {"ideas": [...]})
         const keyWithArray = Object.keys(contentPlan).find(k => Array.isArray(contentPlan[k]));
         if (keyWithArray) {
             ideasArray = contentPlan[keyWithArray];
         } else if (contentPlan.titolo) {
-            // Caso di fallback: l'AI ha risposto con un singolo oggetto. Lo trasformiamo in un array.
             ideasArray = [contentPlan];
         }
     }
