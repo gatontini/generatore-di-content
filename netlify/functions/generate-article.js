@@ -1,4 +1,4 @@
-// Questo codice va in un nuovo file: /netlify/functions/generate-article.js
+// Questo codice va nel tuo file: /netlify/functions/generate-article.js
 
 exports.handler = async function (event, context) {
   if (event.httpMethod !== 'POST') {
@@ -20,7 +20,7 @@ exports.handler = async function (event, context) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o', // MODIFICATO: Uso un modello più potente per la massima qualità di scrittura.
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
       }),
