@@ -1,0 +1,8 @@
+{
+  "name": "progetto-seo-ai-functions",
+  "version": "1.0.0",
+  "description": "Dependencies for Netlify functions",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
