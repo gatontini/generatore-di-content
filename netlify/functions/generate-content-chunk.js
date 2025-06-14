@@ -13,7 +13,7 @@ exports.handler = async function (event, context) {
       throw new Error("La chiave API di OpenAI non è stata impostata.");
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -38,19 +38,25 @@ exports.handler = async function (event, context) {
     const data = await response.json();
     
     // --- AGGIUNTA DI DEBUG ---
-    // Scriviamo nel log la risposta esatta che riceviamo da OpenAI
     console.log("RISPOSTA DA OPENAI (RAW CHUNK):", JSON.stringify(data, null, 2));
     // --- FINE DEBUG ---
 
-    const rawContent = data.choices[0].message.content;
+    let rawContent = data.choices[0].message.content;
     
     // --- CORREZIONE CHIAVE ---
-    // Trasformiamo la stringa di testo dell'AI in un vero array di dati
+    // Pulisce la risposta dell'AI da eventuali blocchi di codice Markdown
+    if (rawContent.startsWith("```json")) {
+        rawContent = rawContent.substring(7, rawContent.length - 3).trim();
+    } else if (rawContent.startsWith("```")) {
+        rawContent = rawContent.substring(3, rawContent.length - 3).trim();
+    }
+
+    // Trasformiamo la stringa di testo pulita in un vero array di dati
     const chunk = JSON.parse(rawContent);
     
     return {
       statusCode: 200,
-      body: JSON.stringify({ chunk }), // Ora 'chunk' è un vero array
+      body: JSON.stringify({ chunk }), // Ora 'chunk' è un vero array o oggetto
     };
 
   } catch (error) {
