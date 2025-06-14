@@ -19,11 +19,6 @@
         [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .prose h1 { font-size: 1.8em; margin-bottom: 0.75em; font-weight: 700; }
-        .prose h2 { font-size: 1.5em; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600;}
-        .prose h3 { font-size: 1.25em; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 600;}
-        .prose p { margin-bottom: 1em; line-height: 1.6;}
-        .prose ul { margin-left: 1.5em; list-style-type: disc; margin-bottom: 1em;}
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
@@ -35,8 +30,8 @@
         </header>
         
         <div id="intro" class="bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-10 text-center">
-            <h2 class="text-xl font-bold text-gray-700 mb-2">Dall'Idea alla Pubblicazione, con l'AI.</h2>
-            <p class="text-gray-600">Questo strumento ti aiuta a pianificare e a scrivere i contenuti per il tuo sito. Rispondi, personalizza la mappa, espandi con l'AI e infine genera articoli completi pronti per essere pubblicati.</p>
+            <h2 class="text-xl font-bold text-gray-700 mb-2">Dall'Idea al Prompt Perfetto.</h2>
+            <p class="text-gray-600">Questo strumento ti aiuta a pianificare i contenuti e a generare prompt professionali per la tua AI preferita, creando articoli pronti per essere pubblicati.</p>
         </div>
 
         <!-- FASE 1: WIZARD / INPUT -->
@@ -111,18 +106,18 @@
         </div>
     </div>
 
-    <!-- Modale Editor Articolo -->
-    <div id="articleModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter">
-        <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[90vh] flex flex-col">
+    <!-- Modale Generatore Prompt -->
+    <div id="promptModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter">
+        <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[95vh] flex flex-col">
             <div class="p-4 border-b flex justify-between items-center">
-                <h3 id="articleModalTitle" class="text-lg font-bold text-gray-800"></h3>
-                <button id="closeArticleModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <h3 class="text-lg font-bold text-gray-800">Genera Prompt Professionale</h3>
+                <button id="closePromptModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
             </div>
-            <div id="articleModalContent" class="p-6 overflow-y-auto flex-grow prose max-w-none">
-                <!-- Contenuto Articolo generato da JS -->
+            <div id="promptModalContent" class="p-6 overflow-y-auto flex-grow">
+                <!-- Contenuto del prompt generato da JS -->
             </div>
             <div class="p-4 border-t bg-white rounded-b-2xl flex gap-4">
-                <button id="copyArticleBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">Copia Articolo</button>
+                <button id="copyPromptBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">Copia Prompt</button>
             </div>
         </div>
     </div>
@@ -143,16 +138,14 @@
         const modalTitle = document.getElementById('modalTitle');
         const modalMessage = document.getElementById('modalMessage');
         const closeModalBtn = document.getElementById('closeModalBtn');
-        const articleModal = document.getElementById('articleModal');
-        const articleModalTitle = document.getElementById('articleModalTitle');
-        const articleModalContent = document.getElementById('articleModalContent');
-        const closeArticleModalBtn = document.getElementById('closeArticleModalBtn');
-        const copyArticleBtn = document.getElementById('copyArticleBtn');
+        const promptModal = document.getElementById('promptModal');
+        const promptModalContent = document.getElementById('promptModalContent');
+        const closePromptModalBtn = document.getElementById('closePromptModalBtn');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
 
         let mindMapData = {};
         let userProfile = {};
         let allContentForCalendar = [];
-        let currentArticleData = {};
 
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
@@ -237,88 +230,95 @@
             allContentForCalendar = [mindMapData.landing, mindMapData.pillar, ...mindMapData.clusters];
             allContentForCalendar.forEach((item, index) => {
                 const row = document.createElement('tr'); row.dataset.index = index;
-                row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">✍️ Scrivi con AI</button></td>`;
+                row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">🤖 Genera Prompt AI</button></td>`;
                 planTableBody.appendChild(row);
             });
             detailedPlanDiv.classList.remove('hidden');
             detailedPlanDiv.scrollIntoView();
         });
         
-        planTableBody.addEventListener('click', async (e) => {
+        planTableBody.addEventListener('click', (e) => {
             const button = e.target.closest('button');
             if (!button || button.dataset.action !== 'write-ai') return;
             
             const row = button.closest('tr');
             const index = parseInt(row.dataset.index, 10);
-            currentArticleData = allContentForCalendar[index];
+            const contentItem = allContentForCalendar[index];
 
-            button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
-
-            const prompt = `Sei un copywriter SEO esperto. Il tuo compito è generare solo la struttura (outline) per un articolo di blog.
-- Titolo: "${currentArticleData.titolo}"
-- Keyword: "${currentArticleData.keyword}"
-Rispondi solo con un array JSON di stringhe, dove ogni stringa è un sottotitolo <h2> per i paragrafi principali dell'articolo. Esempio: ["Introduzione al Problema", "Soluzione A", "Soluzione B", "Conclusione e Call to Action"]`;
-            
-            try {
-                const response = await fetch(`/.netlify/functions/generate-content-chunk`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
-                if (!response.ok) throw new Error('Errore generazione struttura.');
-                const { chunk: outline } = await response.json();
-                
-                articleModalTitle.textContent = currentArticleData.titolo;
-                let contentHtml = `<h1>${currentArticleData.titolo}</h1>`;
-                outline.forEach((h2, i) => {
-                    contentHtml += `<div class="my-4 p-4 border rounded-lg bg-white"><h2>${h2}</h2><div id="paragraph-${i}" class="text-gray-500 italic">Clicca il pulsante per generare questo paragrafo...</div><button data-action="write-paragraph" data-index="${i}" data-heading="${h2}" class="mt-2 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 py-1 px-3 rounded-full">Scrivi Paragrafo</button></div>`;
-                });
-                articleModalContent.innerHTML = contentHtml;
-                articleModal.classList.remove('hidden');
-
-            } catch (error) {
-                showModal('Ooops!', friendlyErrorMessage, false);
-            } finally {
-                button.innerHTML = '✍️ Scrivi con AI'; button.disabled = false;
-            }
+            promptModalContent.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label for="prompt-studio" class="block text-sm font-medium text-gray-700">Nome Studio / Professionista</label>
+                        <input type="text" id="prompt-studio" class="mt-1 w-full p-2 border rounded-md" value="${capitalizeFirstLetter(userProfile.professione)}">
+                    </div>
+                    <div>
+                        <label for="prompt-meccanismo" class="block text-sm font-medium text-gray-700">Breve descrizione / Meccanismo Unico</label>
+                        <input type="text" id="prompt-meccanismo" class="mt-1 w-full p-2 border rounded-md" placeholder="Es: Specializzati in ristrutturazioni chiavi in mano...">
+                    </div>
+                    <div>
+                        <label for="prompt-sitemap" class="block text-sm font-medium text-gray-700">URL della Sitemap (o pagine principali)</label>
+                        <textarea id="prompt-sitemap" rows="3" class="mt-1 w-full p-2 border rounded-md" placeholder="Incolla qui gli URL, uno per riga..."></textarea>
+                    </div>
+                    <div class="text-center">
+                        <button id="generateFinalPromptBtn" data-index="${index}" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700">Genera Prompt Finale</button>
+                    </div>
+                    <div id="final-prompt-container" class="hidden pt-4 mt-4 border-t">
+                        <label class="block text-sm font-medium text-gray-700">Ecco il tuo prompt:</label>
+                        <textarea id="final-prompt" rows="15" class="mt-1 w-full p-2 border rounded-md bg-gray-100 font-mono text-xs" readonly></textarea>
+                    </div>
+                </div>
+            `;
+            promptModal.classList.remove('hidden');
         });
 
-        articleModalContent.addEventListener('click', async (e) => {
+        promptModalContent.addEventListener('click', async (e) => {
             const button = e.target.closest('button');
-            if (!button || button.dataset.action !== 'write-paragraph') return;
+            if (!button || button.id !== 'generateFinalPromptBtn') return;
 
             button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
-            const index = button.dataset.index;
-            const heading = button.dataset.heading;
-            const paragraphDiv = document.getElementById(`paragraph-${index}`);
-            
-            const prompt = `Sei un copywriter SEO esperto. Il tuo compito è scrivere un paragrafo dettagliato e ben argomentato per un articolo di blog. Il paragrafo deve essere lungo circa 150-200 parole e focalizzarsi sul sottotitolo fornito.
-- Titolo dell'articolo (per contesto): "${currentArticleData.titolo}"
-- Keyword principale (da usare se pertinente): "${currentArticleData.keyword}"
-- Sottotitolo (H2) del paragrafo da scrivere: "${heading}"
-Rispondi solo con il testo del paragrafo, formattato in HTML con tag <p>. Non includere il sottotitolo <h2> nella risposta.`;
+
+            const index = parseInt(button.dataset.index, 10);
+            const contentItem = allContentForCalendar[index];
+            const nomeStudio = document.getElementById('prompt-studio').value;
+            const meccanismoUnico = document.getElementById('prompt-meccanismo').value;
+            const sitemapUrls = document.getElementById('prompt-sitemap').value;
+
+            const prompt = `Sei un esperto di Content Strategy e SEO per il settore edile in Italia. Il tuo compito è generare un prompt completo e dettagliato che un professionista potrà poi usare nella sua AI preferita (ChatGPT, Claude, Gemini) per scrivere un articolo di blog di alta qualità.
+Dati Forniti:
+- Nome Studio: "${nomeStudio}"
+- Approccio Unico: "${meccanismoUnico}"
+- Sitemap per link interni: "${sitemapUrls}"
+- Titolo Articolo: "${contentItem.titolo}"
+- Keyword Principale: "${contentItem.keyword}"
+Genera il prompt completo seguendo questa struttura: Introduzione, Istruzioni Contenuto, Regole SEO, Struttura, Linking Strategy, Tono e Vendita, Prompt Immagine.`;
 
             try {
-                const response = await fetch(`/.netlify/functions/generate-content-chunk`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+                const response = await fetch(`/.netlify/functions/generate-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, contentItem, nomeStudio, meccanismoUnico, sitemapUrls }) });
                 if (!response.ok) throw new Error();
-                const { chunk } = await response.json();
-                paragraphDiv.innerHTML = chunk;
-                paragraphDiv.classList.remove('text-gray-500', 'italic');
-                button.remove();
+                const { prompt: finalPrompt } = await response.json();
+                
+                document.getElementById('final-prompt-container').classList.remove('hidden');
+                document.getElementById('final-prompt').value = finalPrompt;
 
             } catch(error) {
-                paragraphDiv.innerHTML = `<p class="text-red-500">Errore. Riprova.</p>`;
-                button.innerHTML = `Scrivi Paragrafo`; button.disabled = false;
+                showModal('Ooops!', friendlyErrorMessage, false);
+            } finally {
+                button.innerHTML = 'Genera Prompt Finale'; button.disabled = false;
             }
         });
-
-        copyArticleBtn.addEventListener('click', () => {
-            const articleHtml = articleModalContent.innerHTML;
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = articleHtml.replace(/<button.*<\/button>/g, ''); // Rimuove i pulsanti non generati
-            const textToCopy = tempDiv.innerText;
-            navigator.clipboard.writeText(textToCopy).then(() => { copyArticleBtn.textContent = 'Copiato!'; setTimeout(() => { copyArticleBtn.textContent = 'Copia Articolo'; }, 2000); });
+        
+        copyPromptBtn.addEventListener('click', () => {
+            const promptText = document.getElementById('final-prompt').value;
+            if (!promptText) return;
+            navigator.clipboard.writeText(promptText).then(() => {
+                copyPromptBtn.textContent = 'Copiato!';
+                setTimeout(() => { copyPromptBtn.textContent = 'Copia Prompt'; }, 2000);
+            });
         });
 
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
-        closeArticleModalBtn.addEventListener('click', () => articleModal.classList.add('hidden'));
+        closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
     });
     </script>
 </body>
