@@ -13,7 +13,8 @@ exports.handler = async function (event, context) {
       throw new Error("La chiave API di OpenAI non è stata impostata.");
     }
 
-    const response = await fetch('[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)', {
+    // CORREZIONE: Rimosso il formato Markdown dall'URL
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
