@@ -16,8 +16,6 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .service-checkbox:checked + label { border-color: #3b82f6; background-color: #eff6ff; color: #1e40af; font-weight: 600; }
-        .service-checkbox:disabled + label { cursor: not-allowed; background-color: #f3f4f6; border-color: #e5e7eb; color: #9ca3af; }
         [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -42,24 +40,16 @@
             <div class="space-y-6">
                 <div>
                     <label for="professione" class="block text-sm font-medium text-gray-600 mb-2">Chi sei?</label>
-                    <select id="professione" class="w-full p-3 border border-gray-300 rounded-lg">
-                        <option value="">Seleziona...</option>
-                        <option value="Architetto">Architetto</option>
-                        <option value="Studio di Architettura">Studio di Architettura</option>
-                        <option value="Interior Designer">Interior Designer</option>
-                        <option value="Impresa Edile">Impresa Edile</option>
-                        <option value="Geometra">Geometra</option>
-                        <option value="altro">Altro (specifica)</option>
-                    </select>
-                    <input type="text" id="professione-altro" class="hidden mt-2 w-full p-3 border" placeholder="Specifica la tua professione">
+                    <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Architetto, Interior Designer, Geometra, Ingegnere...">
                 </div>
                 <div>
                     <label for="citta" class="block text-sm font-medium text-gray-600 mb-2">Dove operi?</label>
                     <input type="text" id="citta" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Firenze">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-2">Servizi principali (max 3)</label>
-                    <div id="services-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+                    <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali</label>
+                    <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Ristrutturazione appartamenti, Direzione lavori...">
+                    <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali, separati da una virgola.</p>
                 </div>
                 <div>
                     <label for="domanda_frequente" class="block text-sm font-medium text-gray-600 mb-2">Domanda frequente dei clienti</label>
@@ -108,11 +98,13 @@
         </div>
     </div>
 
-    <!-- Modale per messaggi di errore -->
-    <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <!-- Modale per messaggi -->
+    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full text-center">
-            <h3 class="text-xl font-bold text-red-600 mb-4">Attenzione!</h3>
-            <p id="errorMessage" class="text-gray-700 mb-6"></p>
+            <h3 id="modalTitle" class="text-xl font-bold text-yellow-500 mb-4">Ooops!</h3>
+            <div id="modalMessage" class="text-gray-700 mb-6 space-y-2">
+                <!-- Messaggio inserito da JS -->
+            </div>
             <button id="closeModalBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-600">Ho capito</button>
         </div>
     </div>
@@ -127,29 +119,31 @@
         const detailedPlanDiv = document.getElementById('detailedPlan');
         const planTableBody = document.getElementById('planTableBody');
         const resetBtn = document.getElementById('resetBtn');
-        const professioneSelect = document.getElementById('professione');
-        const professioneAltroInput = document.getElementById('professione-altro');
-        const servicesContainer = document.getElementById('services-container');
-        const errorModal = document.getElementById('errorModal');
-        const errorMessage = document.getElementById('errorMessage');
+        const professioneInput = document.getElementById('professione');
+        const serviziInput = document.getElementById('servizi');
+        const messageModal = document.getElementById('messageModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
         const closeModalBtn = document.getElementById('closeModalBtn');
 
         let mindMapData = {};
         let userProfile = {};
 
-        const allServices = ['Ristrutturazione appartamenti', 'Ristrutturazione casa', 'Ristrutturazione negozio', 'Ristrutturazione ristorante', 'Ristrutturazione hotel', 'Costruzione villa', 'Pratiche edilizie', 'Calcolo strutturale', 'Abuso edilizio', 'Sanatoria Edilizia'];
-        allServices.forEach(service => {
-            const div = document.createElement('div');
-            const id = `service-${service.toLowerCase().replace(/\s+/g, '-')}`;
-            div.innerHTML = `<input type="checkbox" id="${id}" name="servizio" value="${service}" class="hidden service-checkbox"><label for="${id}" class="block text-center text-sm p-3 border rounded-lg cursor-pointer">${service}</label>`;
-            servicesContainer.appendChild(div);
-        });
-
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
-        const toggleModal = (show, message = "Compila tutti i campi.") => {
-            errorMessage.textContent = message;
-            errorModal.classList.toggle('hidden', !show);
+        
+        const showModal = (title, message, isError = true) => {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4';
+            messageModal.classList.remove('hidden');
         };
+
+        const friendlyErrorMessage = `
+            <p>Ci state sfondando l'A.I.!!</p>
+            <p class="mt-2">Troppe persone stanno usando il generatore tutte insieme, e questo può causare qualche ritardo.</p>
+            <p class="mt-4">Attendi solo un istante e poi clicca nuovamente sul pulsante "Amplia con AI".</p>
+            <p class="mt-4 text-xs italic">P.S. Grazie perché ci stai usando!</p>
+        `;
 
         function renderMindMap() {
             mindMapContainer.innerHTML = '';
@@ -179,13 +173,14 @@
         }
         
         generateMapBtn.addEventListener('click', async () => {
-            const professione = professioneSelect.value === 'altro' ? professioneAltroInput.value.trim() : professioneSelect.value;
-            const servizi = Array.from(servicesContainer.querySelectorAll('input[name="servizio"]:checked')).map(cb => cb.value);
+            const professione = professioneInput.value.trim();
+            const serviziText = serviziInput.value.trim();
+            const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : [];
             const citta = document.getElementById('citta').value.trim();
             const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
 
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) {
-                toggleModal(true, "Assicurati di compilare tutti i campi.");
+                showModal('Attenzione!', 'Assicurati di compilare tutti i campi.');
                 return;
             }
             
@@ -193,21 +188,15 @@
             generateMapBtn.disabled = true;
 
             try {
-                // Chiamata AI per ottimizzare la domanda frequente
                 const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace per un articolo di blog, assicurandoti che la città sia presente una sola volta in modo naturale. Estrai anche la keyword principale (long-tail). Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
-                
-                const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: optimizePrompt })
-                });
-
-                if (!optimizeResponse.ok) throw new Error('Errore durante l\'ottimizzazione della domanda.');
+                const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
+                if (!optimizeResponse.ok) throw new Error('Errore ottimizzazione domanda.');
                 const optimizedQuestion = await optimizeResponse.json();
 
                 userProfile = { professione, servizi, citta };
                 const cittaC = capitalizeFirstLetter(citta);
                 const s1 = servizi[0];
+                const s2 = servizi[1];
 
                 mindMapData = {
                     landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale. Descrivi chi sei, i tuoi servizi, portfolio e CTA.` },
@@ -215,7 +204,7 @@
                     clusters: [
                         { titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune dei clienti.` },
                         { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi per generare fiducia.` },
-                        servizi[1] ? { titolo: `Focus su ${capitalizeFirstLetter(servizi[1])} a ${cittaC}`, keyword: `${servizi[1].toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio principale.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus fiscali disponibili.` },
+                        s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio principale.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus fiscali disponibili.` },
                     ]
                 };
                 
@@ -225,7 +214,7 @@
                 renderMindMap();
 
             } catch (error) {
-                toggleModal(true, `Errore AI: ${error.message}`);
+                showModal('Ooops!', friendlyErrorMessage, false);
             } finally {
                 generateMapBtn.innerHTML = `Crea Mappa Mentale`;
                 generateMapBtn.disabled = false;
@@ -238,7 +227,7 @@
             const { action, type, index } = button.dataset;
 
             if (action === 'delete') {
-                if (type === 'pillar') { toggleModal(true, "Il Pillar non può essere eliminato."); return; }
+                if (type === 'pillar') { showModal('Attenzione!', 'Il contenuto Pillar non può essere eliminato.'); return; }
                 mindMapData[type].splice(index, 1);
                 renderMindMap();
             } else if (action === 'expand-ai') {
@@ -250,40 +239,24 @@
                 const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Per ogni idea, fornisci: "titolo", "keyword", "tipo" (es: 'Caso Studio', 'Confronto', 'Guida Pratica'), e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`;
 
                 try {
-                    const response = await fetch(`/.netlify/functions/generate-content-plan`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt })
-                    });
-                    if (!response.ok) throw new Error((await response.json()).error || 'Errore API');
+                    const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+                    if (!response.ok) throw new Error();
                     const newClusters = await response.json();
-                    
-                    newClusters.forEach(cluster => {
-                        mindMapData.clusters.push({ ...cluster, tipo: 'Suggerito da AI' });
-                    });
+                    newClusters.forEach(cluster => { mindMapData.clusters.push({ ...cluster, tipo: 'Suggerito da AI' }); });
                     renderMindMap();
-
                 } catch (error) {
-                    toggleModal(true, `Errore AI: ${error.message}`);
+                    showModal('Ooops!', friendlyErrorMessage, false);
                     button.innerHTML = '✨ Amplia con AI';
                     button.disabled = false;
                 }
             }
         });
 
-        mindMapContainer.addEventListener('focusout', (e) => {
-            const p = e.target;
-            if (p.dataset.action === 'edit-title') {
-                const { type, index } = p.dataset;
-                const newTitle = p.textContent.trim();
-                (type === 'clusters' ? mindMapData.clusters[index] : mindMapData[type]).titolo = newTitle;
-            }
-        });
+        mindMapContainer.addEventListener('focusout', (e) => { const p = e.target; if (p.dataset.action === 'edit-title') { const { type, index } = p.dataset; const newTitle = p.textContent.trim(); (type === 'clusters' ? mindMapData.clusters[index] : mindMapData[type]).titolo = newTitle; } });
 
         generateCalendarBtn.addEventListener('click', () => {
             planTableBody.innerHTML = '';
             const allContent = [mindMapData.landing, mindMapData.pillar, ...mindMapData.clusters];
-            
             allContent.forEach((item, index) => {
                 const row = document.createElement('tr');
                 const tipoClass = item.tipo === 'Landing Page Locale' ? 'bg-red-100 text-red-800' : (item.tipo === 'Contenuto Pillar' ? 'bg-blue-100 text-blue-800' : (item.tipo === 'Suggerito da AI' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'));
@@ -295,9 +268,8 @@
         });
         
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
-        closeModalBtn.addEventListener('click', () => toggleModal(false));
-        servicesContainer.addEventListener('change', (e) => { if (e.target.name === 'servizio') { const checked = servicesContainer.querySelectorAll('input[name="servizio"]:checked'); const disabled = checked.length >= 3; servicesContainer.querySelectorAll('input[name="servizio"]:not(:checked)').forEach(cb => cb.disabled = disabled); } });
-        professioneSelect.addEventListener('change', () => { professioneAltroInput.classList.toggle('hidden', professioneSelect.value !== 'altro'); });
+        closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
+        
     });
     </script>
 </body>
