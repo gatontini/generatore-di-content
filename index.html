@@ -63,11 +63,11 @@
                 </div>
                 <div>
                     <label for="domanda_frequente" class="block text-sm font-medium text-gray-600 mb-2">Domanda frequente dei clienti</label>
-                    <input type="text" id="domanda_frequente" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Quanto costa ristrutturare casa">
+                    <input type="text" id="domanda_frequente" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Quanto costa ristrutturare casa a Roma?">
                 </div>
             </div>
             <div class="mt-8 text-center">
-                <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">
+                <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center mx-auto">
                     Crea Mappa Mentale
                 </button>
             </div>
@@ -178,7 +178,7 @@
             </div>`;
         }
         
-        generateMapBtn.addEventListener('click', () => {
+        generateMapBtn.addEventListener('click', async () => {
             const professione = professioneSelect.value === 'altro' ? professioneAltroInput.value.trim() : professioneSelect.value;
             const servizi = Array.from(servicesContainer.querySelectorAll('input[name="servizio"]:checked')).map(cb => cb.value);
             const citta = document.getElementById('citta').value.trim();
@@ -189,26 +189,47 @@
                 return;
             }
             
-            userProfile = { professione, servizi, citta };
+            generateMapBtn.innerHTML = `<div class="loader"></div>`;
+            generateMapBtn.disabled = true;
 
-            const cittaC = capitalizeFirstLetter(citta);
-            const s1 = servizi[0];
-            const domanda = domanda_frequente.replace(/\?$/, '');
+            try {
+                // Chiamata AI per ottimizzare la domanda frequente
+                const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace per un articolo di blog, assicurandoti che la città sia presente una sola volta in modo naturale. Estrai anche la keyword principale (long-tail). Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
+                
+                const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: optimizePrompt })
+                });
 
-            mindMapData = {
-                landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale. Descrivi chi sei, i tuoi servizi con focus su "${s1}", mostra un portfolio e testimonianze. L'obiettivo è convertire: inserisci una CTA chiara come 'Richiedi un Preventivo Gratuito'.` },
-                pillar: { titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', sinossi: `Articolo principale e più completo. Strutturalo in capitoli: fasi del progetto, permessi a ${cittaC}, stima dei costi, scelta materiali e bonus fiscali. Usa immagini, checklist e linka ai tuoi contenuti di supporto.` },
-                clusters: [
-                    { titolo: `${capitalizeFirstLetter(domanda)} a ${cittaC}?`, keyword: `${domanda.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Domanda Frequente', sinossi: `Rispondi in modo esaustivo, chiaro e diretto. Usa il primo paragrafo per dare la risposta breve, poi approfondisci. Dimostra di capire le loro preoccupazioni.` },
-                    { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Sii trasparente. Analizza le voci di costo per "${s1}" a ${cittaC}. Fornisci range di prezzo (es. al mq) e spiega i fattori che influenzano il costo. Questo genera enorme fiducia.` },
-                    servizi[1] ? { titolo: `Focus su ${capitalizeFirstLetter(servizi[1])} a ${cittaC}`, keyword: `${servizi[1].toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Crea un articolo di approfondimento per questo servizio. Offri consigli pratici, spiega i benefici e mostra la tua esperienza specifica nel campo.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Articolo sempre aggiornato sui bonus fiscali disponibili per i lavori edili a ${cittaC}. Spiega chi può richiederli e come fare.` },
-                ]
-            };
-            
-            wizardDiv.classList.add('hidden');
-            mindMapDiv.classList.remove('hidden');
-            detailedPlanDiv.classList.add('hidden');
-            renderMindMap();
+                if (!optimizeResponse.ok) throw new Error('Errore durante l\'ottimizzazione della domanda.');
+                const optimizedQuestion = await optimizeResponse.json();
+
+                userProfile = { professione, servizi, citta };
+                const cittaC = capitalizeFirstLetter(citta);
+                const s1 = servizi[0];
+
+                mindMapData = {
+                    landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale. Descrivi chi sei, i tuoi servizi, portfolio e CTA.` },
+                    pillar: { titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', sinossi: `Articolo completo sul servizio principale: fasi, costi, permessi, etc.` },
+                    clusters: [
+                        { titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune dei clienti.` },
+                        { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi per generare fiducia.` },
+                        servizi[1] ? { titolo: `Focus su ${capitalizeFirstLetter(servizi[1])} a ${cittaC}`, keyword: `${servizi[1].toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio principale.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus fiscali disponibili.` },
+                    ]
+                };
+                
+                wizardDiv.classList.add('hidden');
+                mindMapDiv.classList.remove('hidden');
+                detailedPlanDiv.classList.add('hidden');
+                renderMindMap();
+
+            } catch (error) {
+                toggleModal(true, `Errore AI: ${error.message}`);
+            } finally {
+                generateMapBtn.innerHTML = `Crea Mappa Mentale`;
+                generateMapBtn.disabled = false;
+            }
         });
 
         mindMapContainer.addEventListener('click', async (e) => {
@@ -226,12 +247,7 @@
 
                 const { professione, servizi, citta } = userProfile;
                 const existingTitles = [mindMapData.landing.titolo, mindMapData.pillar.titolo, ...mindMapData.clusters.map(c => c.titolo)].join(', ');
-                const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Il tuo obiettivo è suggerire idee per articoli di blog (cluster) che aiutino un professionista a trovare clienti.
-Profilo: ${professione} che opera a ${citta} e offre principalmente i seguenti servizi: ${servizi.join(', ')}.
-Contenuti già in piano: ${existingTitles}.
-Basandoti sul profilo e sui contenuti esistenti, suggerisci 3 nuove idee per articoli di blog. Le idee devono essere pertinenti e utili per chi cerca questi servizi a ${citta}.
-Per ogni idea, fornisci: "titolo", "keyword", "tipo" (es: 'Caso Studio', 'Confronto', 'Guida Pratica', 'Errore da Evitare'), e una "sinossi" di 20-30 parole.
-Fornisci la risposta solo come un array JSON valido, senza testo o spiegazioni aggiuntive. Ad esempio: [{"titolo": "...", "keyword": "...", "tipo": "...", "sinossi": "..."}]`;
+                const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Per ogni idea, fornisci: "titolo", "keyword", "tipo" (es: 'Caso Studio', 'Confronto', 'Guida Pratica'), e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`;
 
                 try {
                     const response = await fetch(`/.netlify/functions/generate-content-plan`, {
@@ -239,14 +255,11 @@ Fornisci la risposta solo come un array JSON valido, senza testo o spiegazioni a
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ prompt })
                     });
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || `Errore API`);
-                    }
+                    if (!response.ok) throw new Error((await response.json()).error || 'Errore API');
                     const newClusters = await response.json();
                     
                     newClusters.forEach(cluster => {
-                        mindMapData.clusters.push({ ...cluster, titolo: `${cluster.titolo}`, tipo: 'Suggerito da AI' });
+                        mindMapData.clusters.push({ ...cluster, tipo: 'Suggerito da AI' });
                     });
                     renderMindMap();
 
@@ -274,36 +287,17 @@ Fornisci la risposta solo come un array JSON valido, senza testo o spiegazioni a
             allContent.forEach((item, index) => {
                 const row = document.createElement('tr');
                 const tipoClass = item.tipo === 'Landing Page Locale' ? 'bg-red-100 text-red-800' : (item.tipo === 'Contenuto Pillar' ? 'bg-blue-100 text-blue-800' : (item.tipo === 'Suggerito da AI' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'));
-                row.innerHTML = `
-                    <td class="px-6 py-4 text-sm font-medium">${index + 1}</td>
-                    <td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td>
-                    <td class="px-6 py-4 text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tipoClass}">${item.tipo}</span></td>
-                    <td class="px-6 py-4 text-sm text-gray-600" style="min-width: 300px;">${item.sinossi || ''}</td>
-                `;
+                row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tipoClass}">${item.tipo}</span></td><td class="px-6 py-4 text-sm text-gray-600">${item.sinossi || ''}</td>`;
                 planTableBody.appendChild(row);
             });
             detailedPlanDiv.classList.remove('hidden');
             detailedPlanDiv.scrollIntoView();
         });
         
-        resetBtn.addEventListener('click', () => {
-            wizardDiv.classList.remove('hidden');
-            mindMapDiv.classList.add('hidden');
-            detailedPlanDiv.classList.add('hidden');
-            wizardDiv.scrollIntoView();
-        });
+        resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => toggleModal(false));
-        servicesContainer.addEventListener('change', (e) => {
-            if (e.target.name === 'servizio') {
-                const checked = servicesContainer.querySelectorAll('input[name="servizio"]:checked');
-                const disabled = checked.length >= 3;
-                servicesContainer.querySelectorAll('input[name="servizio"]:not(:checked)').forEach(cb => cb.disabled = disabled);
-            }
-        });
-        professioneSelect.addEventListener('change', () => {
-            professioneAltroInput.classList.toggle('hidden', professioneSelect.value !== 'altro');
-        });
+        servicesContainer.addEventListener('change', (e) => { if (e.target.name === 'servizio') { const checked = servicesContainer.querySelectorAll('input[name="servizio"]:checked'); const disabled = checked.length >= 3; servicesContainer.querySelectorAll('input[name="servizio"]:not(:checked)').forEach(cb => cb.disabled = disabled); } });
+        professioneSelect.addEventListener('change', () => { professioneAltroInput.classList.toggle('hidden', professioneSelect.value !== 'altro'); });
     });
     </script>
 </body>
