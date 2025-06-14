@@ -11,7 +11,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
         .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-        .plan-enter, .mindmap-enter { animation: fadeIn 0.5s ease-in-out; }
+        .plan-enter, .mindmap-enter, .modal-enter { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -19,6 +19,9 @@
         [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .prose h2 { font-size: 1.5em; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600;}
+        .prose h3 { font-size: 1.25em; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 600;}
+        .prose p { margin-bottom: 1em; line-height: 1.6;}
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
@@ -30,8 +33,8 @@
         </header>
         
         <div id="intro" class="bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-10 text-center">
-            <h2 class="text-xl font-bold text-gray-700 mb-2">Trova i clienti prima che loro trovino te.</h2>
-            <p class="text-gray-600">Questo strumento ti aiuta a pianificare i contenuti per il tuo sito. Rispondi, personalizza la mappa e usa l'AI per scoprire nuove idee strategiche.</p>
+            <h2 class="text-xl font-bold text-gray-700 mb-2">Dall'Idea alla Pubblicazione, con l'AI.</h2>
+            <p class="text-gray-600">Questo strumento ti aiuta a pianificare e a scrivere i contenuti per il tuo sito. Rispondi, personalizza la mappa, espandi con l'AI e infine genera articoli completi pronti per essere pubblicati.</p>
         </div>
 
         <!-- FASE 1: WIZARD / INPUT -->
@@ -40,7 +43,7 @@
             <div class="space-y-6">
                 <div>
                     <label for="professione" class="block text-sm font-medium text-gray-600 mb-2">Chi sei?</label>
-                    <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Architetto, Interior Designer, Geometra, Ingegnere...">
+                    <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Architetto specializzato in bioedilizia">
                 </div>
                 <div>
                     <label for="citta" class="block text-sm font-medium text-gray-600 mb-2">Dove operi?</label>
@@ -87,9 +90,8 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Settimana</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Idea di Titolo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keyword Suggerita</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sinossi</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keyword</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Azione</th>
                         </tr>
                     </thead>
                     <tbody id="planTableBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -98,14 +100,28 @@
         </div>
     </div>
 
-    <!-- Modale per messaggi -->
+    <!-- Modale Messaggi Generici -->
     <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full text-center">
             <h3 id="modalTitle" class="text-xl font-bold text-yellow-500 mb-4">Ooops!</h3>
-            <div id="modalMessage" class="text-gray-700 mb-6 space-y-2">
-                <!-- Messaggio inserito da JS -->
-            </div>
+            <div id="modalMessage" class="text-gray-700 mb-6 space-y-2"></div>
             <button id="closeModalBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-600">Ho capito</button>
+        </div>
+    </div>
+
+    <!-- Modale Editor Articolo -->
+    <div id="articleModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter">
+        <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 id="articleModalTitle" class="text-lg font-bold text-gray-800"></h3>
+                <button id="closeArticleModalBtn" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="articleModalContent" class="p-6 overflow-y-auto flex-grow prose max-w-none">
+                <!-- Contenuto Articolo generato da JS -->
+            </div>
+            <div class="p-4 border-t bg-white rounded-b-2xl">
+                <button id="copyArticleBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">Copia Articolo</button>
+            </div>
         </div>
     </div>
 
@@ -125,25 +141,24 @@
         const modalTitle = document.getElementById('modalTitle');
         const modalMessage = document.getElementById('modalMessage');
         const closeModalBtn = document.getElementById('closeModalBtn');
+        const articleModal = document.getElementById('articleModal');
+        const articleModalTitle = document.getElementById('articleModalTitle');
+        const articleModalContent = document.getElementById('articleModalContent');
+        const closeArticleModalBtn = document.getElementById('closeArticleModalBtn');
+        const copyArticleBtn = document.getElementById('copyArticleBtn');
 
         let mindMapData = {};
         let userProfile = {};
+        let allContentForCalendar = [];
 
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
-        
         const showModal = (title, message, isError = true) => {
             modalTitle.textContent = title;
             modalMessage.innerHTML = message;
             modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4';
             messageModal.classList.remove('hidden');
         };
-
-        const friendlyErrorMessage = `
-            <p>Ci state sfondando l'A.I.!!</p>
-            <p class="mt-2">Troppe persone stanno usando il generatore tutte insieme, e questo può causare qualche ritardo.</p>
-            <p class="mt-4">Attendi solo un istante e poi clicca nuovamente sul pulsante "Amplia con AI".</p>
-            <p class="mt-4 text-xs italic">P.S. Grazie perché ci stai usando!</p>
-        `;
+        const friendlyErrorMessage = `<p>Ci state sfondando l'A.I.!!</p><p class="mt-2">Troppe persone stanno usando il generatore, causando ritardi.</p><p class="mt-4">Attendi un istante e riprova.</p><p class="mt-4 text-xs italic">P.S. Grazie perché ci stai usando!</p>`;
 
         function renderMindMap() {
             mindMapContainer.innerHTML = '';
@@ -163,13 +178,7 @@
 
         function createNodeHtml(type, index, data, isCluster = false) {
             let bgColor = data.tipo === 'Suggerito da AI' ? 'bg-purple-50' : (isCluster ? 'bg-green-50' : (type === 'landing' ? 'bg-red-50' : (type === 'pillar' ? 'bg-blue-50' : 'bg-white')));
-            return `<div class="p-4 rounded-lg shadow-md ${bgColor} w-full md:w-auto md:max-w-md text-center">
-                <div class="flex items-center justify-center">
-                    <p contenteditable="true" data-action="edit-title" data-type="${type}" data-index="${index}" class="font-bold text-gray-800 p-1">${data.titolo}</p>
-                    ${type !== 'landing' ? `<button data-action="delete" data-type="${type}" data-index="${index}" class="ml-2 text-red-400 hover:text-red-600 text-xl font-bold">&times;</button>` : ''}
-                </div>
-                <p class="text-xs text-gray-500 mt-1"><code>${data.keyword}</code></p>
-            </div>`;
+            return `<div class="p-4 rounded-lg shadow-md ${bgColor} w-full md:w-auto md:max-w-md text-center"><div class="flex items-center justify-center"><p contenteditable="true" data-action="edit-title" data-type="${type}" data-index="${index}" class="font-bold text-gray-800 p-1">${data.titolo}</p>${type !== 'landing' ? `<button data-action="delete" data-type="${type}" data-index="${index}" class="ml-2 text-red-400 hover:text-red-600 text-xl font-bold">&times;</button>` : ''}</div><p class="text-xs text-gray-500 mt-1"><code>${data.keyword}</code></p></div>`;
         }
         
         generateMapBtn.addEventListener('click', async () => {
@@ -184,8 +193,7 @@
                 return;
             }
             
-            generateMapBtn.innerHTML = `<div class="loader"></div>`;
-            generateMapBtn.disabled = true;
+            generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
 
             try {
                 const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace per un articolo di blog, assicurandoti che la città sia presente una sola volta in modo naturale. Estrai anche la keyword principale (long-tail). Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
@@ -195,29 +203,25 @@
 
                 userProfile = { professione, servizi, citta };
                 const cittaC = capitalizeFirstLetter(citta);
-                const s1 = servizi[0];
-                const s2 = servizi[1];
+                const s1 = servizi[0]; const s2 = servizi[1];
 
                 mindMapData = {
-                    landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale. Descrivi chi sei, i tuoi servizi, portfolio e CTA.` },
-                    pillar: { titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', sinossi: `Articolo completo sul servizio principale: fasi, costi, permessi, etc.` },
+                    landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale.` },
+                    pillar: { titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', sinossi: `Articolo completo sul servizio principale.` },
                     clusters: [
-                        { titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune dei clienti.` },
-                        { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi per generare fiducia.` },
-                        s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio principale.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus fiscali disponibili.` },
+                        { titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune.` },
+                        { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi.` },
+                        s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus.` },
                     ]
                 };
                 
-                wizardDiv.classList.add('hidden');
-                mindMapDiv.classList.remove('hidden');
-                detailedPlanDiv.classList.add('hidden');
+                wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
                 renderMindMap();
 
             } catch (error) {
                 showModal('Ooops!', friendlyErrorMessage, false);
             } finally {
-                generateMapBtn.innerHTML = `Crea Mappa Mentale`;
-                generateMapBtn.disabled = false;
+                generateMapBtn.innerHTML = `Crea Mappa Mentale`; generateMapBtn.disabled = false;
             }
         });
 
@@ -231,8 +235,7 @@
                 mindMapData[type].splice(index, 1);
                 renderMindMap();
             } else if (action === 'expand-ai') {
-                button.innerHTML = `<div class="loader"></div>`;
-                button.disabled = true;
+                button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
 
                 const { professione, servizi, citta } = userProfile;
                 const existingTitles = [mindMapData.landing.titolo, mindMapData.pillar.titolo, ...mindMapData.clusters.map(c => c.titolo)].join(', ');
@@ -246,8 +249,7 @@
                     renderMindMap();
                 } catch (error) {
                     showModal('Ooops!', friendlyErrorMessage, false);
-                    button.innerHTML = '✨ Amplia con AI';
-                    button.disabled = false;
+                    button.innerHTML = '✨ Amplia con AI'; button.disabled = false;
                 }
             }
         });
@@ -256,20 +258,58 @@
 
         generateCalendarBtn.addEventListener('click', () => {
             planTableBody.innerHTML = '';
-            const allContent = [mindMapData.landing, mindMapData.pillar, ...mindMapData.clusters];
-            allContent.forEach((item, index) => {
-                const row = document.createElement('tr');
-                const tipoClass = item.tipo === 'Landing Page Locale' ? 'bg-red-100 text-red-800' : (item.tipo === 'Contenuto Pillar' ? 'bg-blue-100 text-blue-800' : (item.tipo === 'Suggerito da AI' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'));
-                row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${tipoClass}">${item.tipo}</span></td><td class="px-6 py-4 text-sm text-gray-600">${item.sinossi || ''}</td>`;
+            allContentForCalendar = [mindMapData.landing, mindMapData.pillar, ...mindMapData.clusters];
+            allContentForCalendar.forEach((item, index) => {
+                const row = document.createElement('tr'); row.dataset.index = index;
+                row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">✍️ Scrivi con AI</button></td>`;
                 planTableBody.appendChild(row);
             });
             detailedPlanDiv.classList.remove('hidden');
             detailedPlanDiv.scrollIntoView();
         });
         
+        planTableBody.addEventListener('click', async (e) => {
+            const button = e.target.closest('button');
+            if (!button || button.dataset.action !== 'write-ai') return;
+            
+            const row = button.closest('tr');
+            const index = parseInt(row.dataset.index, 10);
+            const contentItem = allContentForCalendar[index];
+
+            button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
+
+            const prompt = `Sei un copywriter SEO esperto nel settore edile in Italia. Scrivi un articolo completo e ottimizzato per un blog, basato sui seguenti dati:
+- Titolo (H1): "${contentItem.titolo}"
+- Keyword principale: "${contentItem.keyword}"
+- Concept: "${contentItem.sinossi}"
+Requisiti: Linguaggio professionale ma accessibile. Struttura con introduzione, corpo (con sottotitoli H2/H3) e conclusione con call-to-action. Inserisci la keyword in modo naturale. Lunghezza circa 500-700 parole. Fornisci solo il contenuto dell'articolo come una singola stringa HTML (usando tag <p>, <h2>, <h3>, <ul>, <li>).`;
+
+            try {
+                const response = await fetch(`/.netlify/functions/generate-article`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+                if (!response.ok) throw new Error('Errore generazione articolo.');
+                const { article } = await response.json();
+                
+                articleModalTitle.textContent = contentItem.titolo;
+                articleModalContent.innerHTML = article;
+                articleModal.classList.remove('hidden');
+            } catch (error) {
+                showModal('Ooops!', friendlyErrorMessage, false);
+            } finally {
+                button.innerHTML = '✍️ Scrivi con AI'; button.disabled = false;
+            }
+        });
+
+        copyArticleBtn.addEventListener('click', () => {
+            const textToCopy = articleModalContent.innerHTML;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                copyArticleBtn.textContent = 'Copiato!';
+                setTimeout(() => { copyArticleBtn.textContent = 'Copia Articolo'; }, 2000);
+            });
+        });
+
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
-        
+        closeArticleModalBtn.addEventListener('click', () => articleModal.classList.add('hidden'));
     });
     </script>
 </body>
