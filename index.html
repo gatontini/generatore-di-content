@@ -19,9 +19,11 @@
         [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .prose h1 { font-size: 1.8em; margin-bottom: 0.75em; font-weight: 700; }
         .prose h2 { font-size: 1.5em; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600;}
         .prose h3 { font-size: 1.25em; margin-top: 1.25em; margin-bottom: 0.5em; font-weight: 600;}
         .prose p { margin-bottom: 1em; line-height: 1.6;}
+        .prose ul { margin-left: 1.5em; list-style-type: disc; margin-bottom: 1em;}
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
@@ -114,7 +116,7 @@
         <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[90vh] flex flex-col">
             <div class="p-4 border-b flex justify-between items-center">
                 <h3 id="articleModalTitle" class="text-lg font-bold text-gray-800"></h3>
-                <button id="closeArticleModalBtn" class="text-gray-500 hover:text-gray-800">&times;</button>
+                <button id="closeArticleModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
             </div>
             <div id="articleModalContent" class="p-6 overflow-y-auto flex-grow prose max-w-none">
                 <!-- Contenuto Articolo generato da JS -->
@@ -189,14 +191,13 @@
             const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
 
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) {
-                showModal('Attenzione!', 'Assicurati di compilare tutti i campi.');
-                return;
+                showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return;
             }
             
             generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
 
             try {
-                const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace per un articolo di blog, assicurandoti che la città sia presente una sola volta in modo naturale. Estrai anche la keyword principale (long-tail). Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
+                const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
                 const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
                 if (!optimizeResponse.ok) throw new Error('Errore ottimizzazione domanda.');
                 const optimizedQuestion = await optimizeResponse.json();
@@ -231,15 +232,14 @@
             const { action, type, index } = button.dataset;
 
             if (action === 'delete') {
-                if (type === 'pillar') { showModal('Attenzione!', 'Il contenuto Pillar non può essere eliminato.'); return; }
-                mindMapData[type].splice(index, 1);
-                renderMindMap();
+                if (type === 'pillar') { showModal('Attenzione!', 'Il Pillar non può essere eliminato.'); return; }
+                mindMapData[type].splice(index, 1); renderMindMap();
             } else if (action === 'expand-ai') {
                 button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
 
                 const { professione, servizi, citta } = userProfile;
                 const existingTitles = [mindMapData.landing.titolo, mindMapData.pillar.titolo, ...mindMapData.clusters.map(c => c.titolo)].join(', ');
-                const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Per ogni idea, fornisci: "titolo", "keyword", "tipo" (es: 'Caso Studio', 'Confronto', 'Guida Pratica'), e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`;
+                const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Obbligo fondamentale: ogni titolo deve includere la città di ${citta}. Per ogni idea, fornisci: "titolo", "keyword", "tipo" (es: 'Caso Studio', 'Confronto', 'Guida Pratica'), e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`;
 
                 try {
                     const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
@@ -278,11 +278,20 @@
 
             button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
 
-            const prompt = `Sei un copywriter SEO esperto nel settore edile in Italia. Scrivi un articolo completo e ottimizzato per un blog, basato sui seguenti dati:
+            const prompt = `Sei un copywriter SEO con 10 anni di esperienza nel settore dell'edilizia e architettura in Italia, specializzato nel comunicare con un pubblico di non addetti ai lavori. Il tuo tono di voce è autorevole, professionale ma anche rassicurante e facile da capire.
+Il tuo compito è scrivere un articolo per il blog di un professionista, ottimizzato per i motori di ricerca.
+
+Ecco i dati per l'articolo:
 - Titolo (H1): "${contentItem.titolo}"
 - Keyword principale: "${contentItem.keyword}"
 - Concept: "${contentItem.sinossi}"
-Requisiti: Linguaggio professionale ma accessibile. Struttura con introduzione, corpo (con sottotitoli H2/H3) e conclusione con call-to-action. Inserisci la keyword in modo naturale. Lunghezza circa 500-700 parole. Fornisci solo il contenuto dell'articolo come una singola stringa HTML (usando tag <p>, <h2>, <h3>, <ul>, <li>).`;
+
+Requisiti obbligatori per l'articolo:
+1.  **Struttura:** Inizia con un'introduzione che catturi l'attenzione e presenti il problema. Sviluppa il corpo del testo in 3 o 4 sezioni principali, ognuna con un sottotitolo <h2>. Usa elenchi puntati (<ul><li>) dove possibile per migliorare la leggibilità. Termina con una conclusione che riassuma i punti chiave e includa una chiara call-to-action per invitare il lettore a contattare il professionista per una consulenza.
+2.  **SEO:** La keyword principale, "${contentItem.keyword}", deve essere inserita naturalmente nel primo paragrafo, in almeno un sottotitolo <h2> e nel resto del testo. Includi anche 2-3 keyword correlate pertinenti.
+3.  **Formato di Output:** Fornisci solo il contenuto dell'articolo come una singola stringa HTML. Usa solo i seguenti tag: <h1> per il titolo (che deve essere esattamente quello fornito), <p>, <h2>, <h3>, <ul>, <li>. Non includere MAI tag come <html>, <head>, <body> o \`\`\`.
+4.  **Lingua:** Scrivi in italiano impeccabile.
+5.  **Lunghezza:** Circa 500-700 parole.`;
 
             try {
                 const response = await fetch(`/.netlify/functions/generate-article`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
@@ -290,7 +299,7 @@ Requisiti: Linguaggio professionale ma accessibile. Struttura con introduzione, 
                 const { article } = await response.json();
                 
                 articleModalTitle.textContent = contentItem.titolo;
-                articleModalContent.innerHTML = article;
+                articleModalContent.innerHTML = `<h1>${contentItem.titolo}</h1>${article}`;
                 articleModal.classList.remove('hidden');
             } catch (error) {
                 showModal('Ooops!', friendlyErrorMessage, false);
@@ -300,7 +309,11 @@ Requisiti: Linguaggio professionale ma accessibile. Struttura con introduzione, 
         });
 
         copyArticleBtn.addEventListener('click', () => {
-            const textToCopy = articleModalContent.innerHTML;
+            const articleHtml = articleModalContent.innerHTML;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = articleHtml;
+            const textToCopy = tempDiv.innerText;
+
             navigator.clipboard.writeText(textToCopy).then(() => {
                 copyArticleBtn.textContent = 'Copiato!';
                 setTimeout(() => { copyArticleBtn.textContent = 'Copia Articolo'; }, 2000);
