@@ -42,11 +42,15 @@ exports.handler = async function (event, context) {
     console.log("RISPOSTA DA OPENAI (RAW CHUNK):", JSON.stringify(data, null, 2));
     // --- FINE DEBUG ---
 
-    const chunk = data.choices[0].message.content;
+    const rawContent = data.choices[0].message.content;
+    
+    // --- CORREZIONE CHIAVE ---
+    // Trasformiamo la stringa di testo dell'AI in un vero array di dati
+    const chunk = JSON.parse(rawContent);
     
     return {
       statusCode: 200,
-      body: JSON.stringify({ chunk }),
+      body: JSON.stringify({ chunk }), // Ora 'chunk' è un vero array
     };
 
   } catch (error) {
