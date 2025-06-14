@@ -1,4 +1,0 @@
-[functions]
-  # Aumenta il timeout per la funzione specifica
-  [functions."generate-content-plan"]
-    timeout = 25 # secondi

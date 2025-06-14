@@ -1,0 +1,16 @@
+# File di configurazione per Netlify
+
+# Aumenta il timeout per le funzioni che ne hanno bisogno
+[functions]
+
+  # Timeout per la funzione che genera il piano di contenuti
+  [functions."generate-content-plan"]
+    timeout = 25 # secondi
+
+  # Timeout per la funzione che ottimizza la domanda
+  [functions."optimize-question"]
+    timeout = 25 # secondi
+
+  # Aggiungiamo un timeout più lungo per la funzione che scrive l'articolo intero
+  [functions."generate-article"]
+    timeout = 60 # secondi
