@@ -14,7 +14,7 @@ exports.handler = async function (event, context) {
       throw new Error("La chiave API di OpenAI non è stata impostata nelle variabili d'ambiente.");
     }
 
-    // Usa la funzione fetch integrata (non serve più 'node-fetch')
+    // Usa la funzione fetch integrata
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -39,9 +39,26 @@ exports.handler = async function (event, context) {
     }
 
     const data = await response.json();
-    const contentPlan = JSON.parse(data.choices[0].message.content);
+    
+    // --- AGGIUNTA DI DEBUG ---
+    // Scriviamo nel log la risposta esatta che riceviamo da OpenAI
+    const rawContent = data.choices[0].message.content;
+    console.log("RISPOSTA DA OPENAI (RAW):", rawContent);
+    // --- FINE DEBUG ---
 
-    const ideasArray = Array.isArray(contentPlan) ? contentPlan : (contentPlan.ideas || contentPlan.clusters || []);
+    const contentPlan = JSON.parse(rawContent);
+
+    // Rendiamo più robusta l'estrazione dell'array
+    let ideasArray = [];
+    if (Array.isArray(contentPlan)) {
+        ideasArray = contentPlan;
+    } else if (typeof contentPlan === 'object' && contentPlan !== null) {
+        // Cerca la prima chiave che contiene un array
+        const keyWithArray = Object.keys(contentPlan).find(k => Array.isArray(contentPlan[k]));
+        if (keyWithArray) {
+            ideasArray = contentPlan[keyWithArray];
+        }
+    }
     
     return {
       statusCode: 200,
