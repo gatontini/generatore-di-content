@@ -13,7 +13,6 @@ exports.handler = async function (event, context) {
       throw new Error("La chiave API di OpenAI non è stata impostata.");
     }
 
-    // CORREZIONE: Rimosso il formato Markdown dall'URL
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,7 +43,6 @@ exports.handler = async function (event, context) {
 
     let rawContent = data.choices[0].message.content;
     
-    // --- CORREZIONE CHIAVE ---
     // Pulisce la risposta dell'AI da eventuali blocchi di codice Markdown
     if (rawContent.startsWith("```json")) {
         rawContent = rawContent.substring(7, rawContent.length - 3).trim();
@@ -52,12 +50,18 @@ exports.handler = async function (event, context) {
         rawContent = rawContent.substring(3, rawContent.length - 3).trim();
     }
 
-    // Trasformiamo la stringa di testo pulita in un vero array di dati
-    const chunk = JSON.parse(rawContent);
+    // --- CORREZIONE DEFINITIVA ---
+    // Prova a interpretare la risposta come JSON. Se fallisce, la tratta come testo semplice (HTML).
+    let chunk;
+    try {
+        chunk = JSON.parse(rawContent);
+    } catch (e) {
+        chunk = rawContent; // È testo semplice o HTML, lo usiamo così com'è.
+    }
     
     return {
       statusCode: 200,
-      body: JSON.stringify({ chunk }), // Ora 'chunk' è un vero array o oggetto
+      body: JSON.stringify({ chunk }),
     };
 
   } catch (error) {
