@@ -121,8 +121,8 @@
             <div id="articleModalContent" class="p-6 overflow-y-auto flex-grow prose max-w-none">
                 <!-- Contenuto Articolo generato da JS -->
             </div>
-            <div class="p-4 border-t bg-white rounded-b-2xl">
-                <button id="copyArticleBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">Copia Articolo</button>
+            <div class="p-4 border-t bg-white rounded-b-2xl flex gap-4">
+                <button id="copyArticleBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700">Copia Articolo</button>
             </div>
         </div>
     </div>
@@ -152,14 +152,10 @@
         let mindMapData = {};
         let userProfile = {};
         let allContentForCalendar = [];
+        let currentArticleData = {};
 
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
-        const showModal = (title, message, isError = true) => {
-            modalTitle.textContent = title;
-            modalMessage.innerHTML = message;
-            modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4';
-            messageModal.classList.remove('hidden');
-        };
+        const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>Ci state sfondando l'A.I.!!</p><p class="mt-2">Troppe persone stanno usando il generatore, causando ritardi.</p><p class="mt-4">Attendi un istante e riprova.</p><p class="mt-4 text-xs italic">P.S. Grazie perché ci stai usando!</p>`;
 
         function renderMindMap() {
@@ -190,9 +186,7 @@
             const citta = document.getElementById('citta').value.trim();
             const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
 
-            if (!professione || !citta || servizi.length === 0 || !domanda_frequente) {
-                showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return;
-            }
+            if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
             
             generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
 
@@ -203,27 +197,16 @@
                 const optimizedQuestion = await optimizeResponse.json();
 
                 userProfile = { professione, servizi, citta };
-                const cittaC = capitalizeFirstLetter(citta);
-                const s1 = servizi[0]; const s2 = servizi[1];
-
+                const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0]; const s2 = servizi[1];
                 mindMapData = {
                     landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale.` },
                     pillar: { titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', sinossi: `Articolo completo sul servizio principale.` },
-                    clusters: [
-                        { titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune.` },
-                        { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi.` },
-                        s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus.` },
-                    ]
+                    clusters: [{ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune.` }, { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi.` }, s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus.` },]
                 };
-                
                 wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
                 renderMindMap();
-
-            } catch (error) {
-                showModal('Ooops!', friendlyErrorMessage, false);
-            } finally {
-                generateMapBtn.innerHTML = `Crea Mappa Mentale`; generateMapBtn.disabled = false;
-            }
+            } catch (error) { showModal('Ooops!', friendlyErrorMessage, false);
+            } finally { generateMapBtn.innerHTML = `Crea Mappa Mentale`; generateMapBtn.disabled = false; }
         });
 
         mindMapContainer.addEventListener('click', async (e) => {
@@ -231,26 +214,19 @@
             if (!button || !button.dataset.action) return;
             const { action, type, index } = button.dataset;
 
-            if (action === 'delete') {
-                if (type === 'pillar') { showModal('Attenzione!', 'Il Pillar non può essere eliminato.'); return; }
-                mindMapData[type].splice(index, 1); renderMindMap();
+            if (action === 'delete') { if (type === 'pillar') { showModal('Attenzione!', 'Il Pillar non può essere eliminato.'); return; } mindMapData[type].splice(index, 1); renderMindMap();
             } else if (action === 'expand-ai') {
                 button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
-
                 const { professione, servizi, citta } = userProfile;
                 const existingTitles = [mindMapData.landing.titolo, mindMapData.pillar.titolo, ...mindMapData.clusters.map(c => c.titolo)].join(', ');
-                const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Obbligo fondamentale: ogni titolo deve includere la città di ${citta}. Per ogni idea, fornisci: "titolo", "keyword", "tipo" (es: 'Caso Studio', 'Confronto', 'Guida Pratica'), e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`;
-
+                const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Obbligo: ogni titolo deve includere la città di ${citta}. Per ogni idea, fornisci: "titolo", "keyword", "tipo", e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`;
                 try {
                     const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
                     if (!response.ok) throw new Error();
                     const newClusters = await response.json();
                     newClusters.forEach(cluster => { mindMapData.clusters.push({ ...cluster, tipo: 'Suggerito da AI' }); });
                     renderMindMap();
-                } catch (error) {
-                    showModal('Ooops!', friendlyErrorMessage, false);
-                    button.innerHTML = '✨ Amplia con AI'; button.disabled = false;
-                }
+                } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); button.innerHTML = '✨ Amplia con AI'; button.disabled = false; }
             }
         });
 
@@ -274,33 +250,28 @@
             
             const row = button.closest('tr');
             const index = parseInt(row.dataset.index, 10);
-            const contentItem = allContentForCalendar[index];
+            currentArticleData = allContentForCalendar[index];
 
             button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
 
-            const prompt = `Sei un copywriter SEO con 10 anni di esperienza nel settore dell'edilizia e architettura in Italia, specializzato nel comunicare con un pubblico di non addetti ai lavori. Il tuo tono di voce è autorevole, professionale ma anche rassicurante e facile da capire.
-Il tuo compito è scrivere un articolo per il blog di un professionista, ottimizzato per i motori di ricerca.
-
-Ecco i dati per l'articolo:
-- Titolo (H1): "${contentItem.titolo}"
-- Keyword principale: "${contentItem.keyword}"
-- Concept: "${contentItem.sinossi}"
-
-Requisiti obbligatori per l'articolo:
-1.  **Struttura:** Inizia con un'introduzione che catturi l'attenzione e presenti il problema. Sviluppa il corpo del testo in 3 o 4 sezioni principali, ognuna con un sottotitolo <h2>. Usa elenchi puntati (<ul><li>) dove possibile per migliorare la leggibilità. Termina con una conclusione che riassuma i punti chiave e includa una chiara call-to-action per invitare il lettore a contattare il professionista per una consulenza.
-2.  **SEO:** La keyword principale, "${contentItem.keyword}", deve essere inserita naturalmente nel primo paragrafo, in almeno un sottotitolo <h2> e nel resto del testo. Includi anche 2-3 keyword correlate pertinenti.
-3.  **Formato di Output:** Fornisci solo il contenuto dell'articolo come una singola stringa HTML. Usa solo i seguenti tag: <h1> per il titolo (che deve essere esattamente quello fornito), <p>, <h2>, <h3>, <ul>, <li>. Non includere MAI tag come <html>, <head>, <body> o \`\`\`.
-4.  **Lingua:** Scrivi in italiano impeccabile.
-5.  **Lunghezza:** Circa 500-700 parole.`;
-
+            const prompt = `Sei un copywriter SEO esperto. Il tuo compito è generare solo la struttura (outline) per un articolo di blog.
+- Titolo: "${currentArticleData.titolo}"
+- Keyword: "${currentArticleData.keyword}"
+Rispondi solo con un array JSON di stringhe, dove ogni stringa è un sottotitolo <h2> per i paragrafi principali dell'articolo. Esempio: ["Introduzione al Problema", "Soluzione A", "Soluzione B", "Conclusione e Call to Action"]`;
+            
             try {
-                const response = await fetch(`/.netlify/functions/generate-article`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
-                if (!response.ok) throw new Error('Errore generazione articolo.');
-                const { article } = await response.json();
+                const response = await fetch(`/.netlify/functions/generate-content-chunk`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+                if (!response.ok) throw new Error('Errore generazione struttura.');
+                const { chunk: outline } = await response.json();
                 
-                articleModalTitle.textContent = contentItem.titolo;
-                articleModalContent.innerHTML = `<h1>${contentItem.titolo}</h1>${article}`;
+                articleModalTitle.textContent = currentArticleData.titolo;
+                let contentHtml = `<h1>${currentArticleData.titolo}</h1>`;
+                outline.forEach((h2, i) => {
+                    contentHtml += `<div class="my-4 p-4 border rounded-lg bg-white"><h2>${h2}</h2><div id="paragraph-${i}" class="text-gray-500 italic">Clicca il pulsante per generare questo paragrafo...</div><button data-action="write-paragraph" data-index="${i}" data-heading="${h2}" class="mt-2 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 py-1 px-3 rounded-full">Scrivi Paragrafo</button></div>`;
+                });
+                articleModalContent.innerHTML = contentHtml;
                 articleModal.classList.remove('hidden');
+
             } catch (error) {
                 showModal('Ooops!', friendlyErrorMessage, false);
             } finally {
@@ -308,16 +279,41 @@ Requisiti obbligatori per l'articolo:
             }
         });
 
+        articleModalContent.addEventListener('click', async (e) => {
+            const button = e.target.closest('button');
+            if (!button || button.dataset.action !== 'write-paragraph') return;
+
+            button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
+            const index = button.dataset.index;
+            const heading = button.dataset.heading;
+            const paragraphDiv = document.getElementById(`paragraph-${index}`);
+            
+            const prompt = `Sei un copywriter SEO esperto. Il tuo compito è scrivere un paragrafo dettagliato e ben argomentato per un articolo di blog. Il paragrafo deve essere lungo circa 150-200 parole e focalizzarsi sul sottotitolo fornito.
+- Titolo dell'articolo (per contesto): "${currentArticleData.titolo}"
+- Keyword principale (da usare se pertinente): "${currentArticleData.keyword}"
+- Sottotitolo (H2) del paragrafo da scrivere: "${heading}"
+Rispondi solo con il testo del paragrafo, formattato in HTML con tag <p>. Non includere il sottotitolo <h2> nella risposta.`;
+
+            try {
+                const response = await fetch(`/.netlify/functions/generate-content-chunk`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+                if (!response.ok) throw new Error();
+                const { chunk } = await response.json();
+                paragraphDiv.innerHTML = chunk;
+                paragraphDiv.classList.remove('text-gray-500', 'italic');
+                button.remove();
+
+            } catch(error) {
+                paragraphDiv.innerHTML = `<p class="text-red-500">Errore. Riprova.</p>`;
+                button.innerHTML = `Scrivi Paragrafo`; button.disabled = false;
+            }
+        });
+
         copyArticleBtn.addEventListener('click', () => {
             const articleHtml = articleModalContent.innerHTML;
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = articleHtml;
+            tempDiv.innerHTML = articleHtml.replace(/<button.*<\/button>/g, ''); // Rimuove i pulsanti non generati
             const textToCopy = tempDiv.innerText;
-
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                copyArticleBtn.textContent = 'Copiato!';
-                setTimeout(() => { copyArticleBtn.textContent = 'Copia Articolo'; }, 2000);
-            });
+            navigator.clipboard.writeText(textToCopy).then(() => { copyArticleBtn.textContent = 'Copiato!'; setTimeout(() => { copyArticleBtn.textContent = 'Copia Articolo'; }, 2000); });
         });
 
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
