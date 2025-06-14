@@ -1,4 +1,4 @@
-// Questo codice va in un nuovo file: /netlify/functions/generate-content-chunk.js
+// Questo è il nuovo codice per: /netlify/functions/generate-content-chunk.js
 
 exports.handler = async function (event, context) {
   if (event.httpMethod !== 'POST') {
@@ -20,7 +20,7 @@ exports.handler = async function (event, context) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Usiamo il modello migliore per la massima qualità
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
       }),
@@ -28,6 +28,7 @@ exports.handler = async function (event, context) {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Errore da OpenAI:', errorData);
       return { 
         statusCode: response.status, 
         body: JSON.stringify({ error: 'Errore durante la chiamata a OpenAI.' }) 
@@ -35,6 +36,12 @@ exports.handler = async function (event, context) {
     }
 
     const data = await response.json();
+    
+    // --- AGGIUNTA DI DEBUG ---
+    // Scriviamo nel log la risposta esatta che riceviamo da OpenAI
+    console.log("RISPOSTA DA OPENAI (RAW CHUNK):", JSON.stringify(data, null, 2));
+    // --- FINE DEBUG ---
+
     const chunk = data.choices[0].message.content;
     
     return {
