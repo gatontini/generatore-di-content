@@ -39,24 +39,24 @@ exports.handler = async function (event, context) {
     }
 
     const data = await response.json();
-    
-    // --- AGGIUNTA DI DEBUG ---
-    // Scriviamo nel log la risposta esatta che riceviamo da OpenAI
     const rawContent = data.choices[0].message.content;
     console.log("RISPOSTA DA OPENAI (RAW):", rawContent);
-    // --- FINE DEBUG ---
 
     const contentPlan = JSON.parse(rawContent);
 
     // Rendiamo più robusta l'estrazione dell'array
     let ideasArray = [];
     if (Array.isArray(contentPlan)) {
+        // Caso ideale: l'AI ha risposto con un array
         ideasArray = contentPlan;
     } else if (typeof contentPlan === 'object' && contentPlan !== null) {
-        // Cerca la prima chiave che contiene un array
+        // Cerca la prima chiave che contiene un array (es. {"ideas": [...]})
         const keyWithArray = Object.keys(contentPlan).find(k => Array.isArray(contentPlan[k]));
         if (keyWithArray) {
             ideasArray = contentPlan[keyWithArray];
+        } else if (contentPlan.titolo) {
+            // Caso di fallback: l'AI ha risposto con un singolo oggetto. Lo trasformiamo in un array.
+            ideasArray = [contentPlan];
         }
     }
     
