@@ -1,11 +1,42 @@
+// Questo è il nuovo codice per: /netlify/functions/generate-seo-meta.js
+
 exports.handler = async function (event, context) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
   try {
-    const { contentItem } = JSON.parse(event.body);
+    // MODIFICATO: Ora riceviamo anche il profilo dell'utente per dare più contesto all'AI
+    const { contentItem, userProfile } = JSON.parse(event.body);
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("API Key non trovata.");
 
-    const prompt = `Dato il titolo "${contentItem.titolo}" e la keyword "${contentItem.keyword}", genera un "titolo_seo" (max 60 caratteri) e una "meta_description" (max 155 caratteri, accattivante e con una call-to-action). Rispondi solo con un oggetto JSON.`;
+    // --- Logica per distinguere l'intento ---
+    const informationalKeywords = ['guida', 'come', 'costo', 'prezzo', 'quanto', 'differenze', 'cosa', 'quando'];
+    const isInformational = informationalKeywords.some(k => contentItem.keyword.toLowerCase().includes(k));
+
+    let prompt;
+
+    if (isInformational) {
+      // Prompt specifico per contenuti informativi
+      prompt = `Sei un esperto SEO per professionisti del settore edile. Il tuo obiettivo è scrivere per attrarre potenziali CLIENTI che cercano informazioni e soluzioni a un problema.
+Dati:
+- Professionista: "${userProfile.professione}"
+- Titolo Articolo: "${contentItem.titolo}"
+- Keyword: "${contentItem.keyword}"
+Genera:
+1. "titolo_seo": un titolo SEO (max 60 caratteri) che incuriosisca l'utente a trovare la risposta.
+2. "meta_description": una meta description (max 155 caratteri) che anticipi la soluzione al problema del lettore e lo inviti a leggere la guida completa.
+Rispondi solo con un oggetto JSON con le chiavi "titolo_seo" e "meta_description".`;
+    } else {
+      // Prompt specifico per contenuti transazionali (ricerca di un professionista)
+      prompt = `Sei un esperto SEO per professionisti del settore edile. Il tuo obiettivo è scrivere per convincere un potenziale CLIENTE che ha trovato il professionista giusto.
+Dati:
+- Professionista: "${userProfile.professione}"
+- Titolo Articolo: "${contentItem.titolo}"
+- Keyword: "${contentItem.keyword}"
+Genera:
+1. "titolo_seo": un titolo SEO (max 60 caratteri) che metta in risalto il servizio professionale e la località.
+2. "meta_description": una meta description (max 155 caratteri) che evidenzi l'affidabilità e si concluda con un invito diretto a contattare il professionista per una consulenza o un preventivo.
+Rispondi solo con un oggetto JSON con le chiavi "titolo_seo" e "meta_description".`;
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
