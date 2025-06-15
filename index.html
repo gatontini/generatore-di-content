@@ -33,21 +33,26 @@
             background-color: #f1f5f9;
             border-radius: 0.75rem;
             padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
         }
         .card-list {
             min-height: 100px;
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
+            flex-grow: 1;
         }
         .content-card {
             padding: 1rem;
             border-radius: 0.5rem;
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
             cursor: grab;
+            transition: box-shadow 0.2s;
         }
         .content-card:active {
             cursor: grabbing;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
     </style>
 </head>
@@ -115,14 +120,15 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- ELEMENTI DOM ---
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
         const board = document.getElementById('board');
         const mindMapControls = document.getElementById('mindMapControls');
         const generateCalendarBtn = document.getElementById('generateCalendarBtn');
-        const detailedPlanDiv = document.getElementById('detailedPlan'); // FIXED: Declaration added
-        const planTableBody = document.getElementById('planTableBody'); // FIXED: Declaration added
+        const detailedPlanDiv = document.getElementById('detailedPlan');
+        const planTableBody = document.getElementById('planTableBody');
         const resetBtn = document.getElementById('resetBtn');
         const professioneInput = document.getElementById('professione');
         const serviziInput = document.getElementById('servizi');
@@ -131,13 +137,16 @@
         const manualAddModal = document.getElementById('manualAddModal'); const closeManualAddModalBtn = document.getElementById('closeManualAddModalBtn'); const enrichKeywordsBtn = document.getElementById('enrichKeywordsBtn');
         const promptModal = document.getElementById('promptModal'); const promptSectionsContainer = document.getElementById('prompt-sections-container'); const closePromptModalBtn = document.getElementById('closePromptModalBtn');
 
+        // --- STATO ---
         let userProfile = {};
         let boardData = {};
         
+        // --- FUNZIONI HELPER ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
+        // --- LOGICA LAVAGNA A COLONNE ---
         function renderBoard() {
             board.innerHTML = '';
             const columnStyles = {
@@ -160,6 +169,30 @@
                         cardListEl.appendChild(createCard(cardData, columnInfo.color));
                     });
                 }
+                
+                // CORREZIONE BUG: Inizializza SortableJS qui, dopo che gli elementi esistono.
+                new Sortable(cardListEl, {
+                    group: 'shared',
+                    animation: 150,
+                    onEnd: (evt) => {
+                        const cardId = evt.item.dataset.id;
+                        const newColumnId = evt.to.id.replace('column-', '');
+                        const oldColumnId = evt.from.id.replace('column-', '');
+
+                        let movedCard;
+                        const oldColumnCards = boardData[oldColumnId];
+                        const cardIndex = oldColumnCards.findIndex(card => card.id == cardId);
+                        
+                        if (cardIndex > -1) {
+                            movedCard = oldColumnCards.splice(cardIndex, 1)[0];
+                        }
+                        
+                        if (movedCard) {
+                             boardData[newColumnId].splice(evt.newDraggableIndex, 0, movedCard);
+                             // Non ri-renderizzare tutto, lascia che SortableJS gestisca il DOM.
+                        }
+                    }
+                });
             });
         }
         
@@ -195,6 +228,7 @@
             renderBoard();
         }
 
+        // --- GESTIONE DATI E CHIAMATE AI ---
         generateMapBtn.addEventListener('click', () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim();
             if (!professione || !citta || servizi.length === 0) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
@@ -236,6 +270,42 @@
             detailedPlanDiv.scrollIntoView();
         });
         
+        planTableBody.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (!button || button.dataset.action !== 'write-ai') return;
+            
+            const row = button.closest('tr');
+            const cardId = row.dataset.id;
+            
+            let currentContentItem;
+            for (const column in boardData) {
+                currentContentItem = boardData[column].find(c => c.id == cardId);
+                if (currentContentItem) break;
+            }
+
+            if (!currentContentItem) return;
+
+            document.getElementById('prompt-studio').value = capitalizeFirstLetter(userProfile.professione);
+            
+            promptSectionsContainer.innerHTML = `
+                <div class="p-4 bg-white rounded-lg border">
+                    <h4 class="font-semibold text-gray-800 mb-2">1. Prompt per l'Articolo</h4>
+                    <textarea id="prompt-article" rows="12" class="w-full p-2 border rounded-md bg-gray-100 font-mono text-xs" readonly></textarea>
+                    <div class="mt-2" id="article-prompt-buttons-container"><button data-action="generate-article-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg">Genera</button></div>
+                </div>
+                <div class="p-4 bg-white rounded-lg border">
+                    <h4 class="font-semibold text-gray-800 mb-2">2. Meta Dati SEO</h4>
+                    <div id="seo-meta-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div>
+                    <div class="mt-2" id="seo-meta-buttons-container"><button data-action="generate-seo-meta" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg">Genera</button></div>
+                </div>
+                <div class="p-4 bg-white rounded-lg border">
+                    <h4 class="font-semibold text-gray-800 mb-2">3. Prompt per Immagine (Midjourney)</h4>
+                    <div id="image-prompt-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div>
+                    <div class="mt-2" id="image-prompt-buttons-container"><button data-action="generate-image-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg">Genera</button></div>
+                </div>`;
+            promptModal.classList.remove('hidden');
+        });
+        
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
         closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
@@ -244,8 +314,3 @@
     </script>
 </body>
 </html>
-```
-
-I made some changes. Ho aggiunto le definizioni per le variabili `detailedPlanDiv` e `planTableBody` all'inizio dello script. Questo tipo di errore `ReferenceError` si verifica quando si tenta di utilizzare una variabile che non è stata dichiarata, e le mie correzioni risolvono il problema.
-
-Ora il codice dovrebbe funzionare come previs
