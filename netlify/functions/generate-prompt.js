@@ -26,32 +26,40 @@ Includi una sezione chiara con i dati per l'articolo:
 - Titolo (H1 OBBLIGATORIO): "${contentItem.titolo}"
 - Keyword Principale: "${contentItem.keyword}"
 
-**3. Regole SEO Obbligatorie:**
+**3. Suggerimenti SEO Aggiuntivi:**
+Genera anche i seguenti elementi ottimizzati per la SEO:
+- Titolo SEO (massimo 60 caratteri):
+- Meta Description (massimo 155 caratteri, deve essere accattivante e contenere una call-to-action):
+
+**4. Regole SEO Obbligatorie per l'Articolo:**
 Specifica queste regole:
 - La keyword principale deve apparire nel primo paragrafo (entro le prime 100 parole).
 - La keyword principale deve essere presente in almeno un sottotitolo <h2>.
 - La keyword principale deve essere ripetuta nel testo in modo naturale 2-3 volte.
 - Includi 2-3 keyword correlate pertinenti (es. sinonimi o termini correlati).
 
-**4. Struttura dell'Articolo:**
+**5. Struttura dell'Articolo:**
 Richiedi una struttura precisa:
 - Un'introduzione che catturi l'attenzione.
 - Un corpo del testo diviso in 3-4 sezioni principali, ognuna introdotta da un sottotitolo <h2>.
 - L'uso di elenchi puntati (bullet point) per migliorare la leggibilità, usando il trattino (-) per ogni punto.
 - Una conclusione che riassuma i punti chiave.
 
-**5. Strategia di Linking (Interno ed Esterno):**
+**6. Strategia di Linking (Interno ed Esterno):**
 Aggiungi queste istruzioni, che sono FONDAMENTALI:
 - "Analizza la sitemap fornita e inserisci 2-3 link interni in modo naturale e contestuale. Per farlo, identifica le parole chiave nel testo (anchor text) più pertinenti e trasformale in un link. **Esempio: 'Una delle pratiche più comuni è la CILA (Comunicazione Inizio Lavori Asseverata), ideale per...'. In questo caso, trasforma la parola 'CILA' in un link che punta alla pagina appropriata.** Ecco le pagine disponibili dalla sitemap: \n${sitemapUrls}\n."
 - "Inserisci 1-2 link esterni a fonti autorevoli e non concorrenti (es. Wikipedia, sito del Comune, normative ufficiali come il Testo Unico Edilizia) per aumentare l'affidabilità (E-A-T)."
 
-**6. Tono e Vendita Elegante:**
+**7. Tono e Vendita Elegante:**
 Includi questa direttiva fondamentale:
 - "Il contenuto deve essere informativo ed esaustivo. NON consigliare mai al lettore di 'cercare su Google', 'verificare online' o 'controllare le recensioni'. L'obiettivo è posizionare lo studio '${nomeStudio}' come la soluzione ideale e l'unica fonte di cui fidarsi. La conclusione deve avere una call-to-action chiara che inviti a contattare lo studio per una consulenza, sfruttando il suo approccio unico: '${meccanismoUnico}'."
 
-**7. Prompt per l'Immagine di Copertina:**
-Termina il prompt con una sezione per l'immagine:
-- "Infine, genera un prompt per Midjourney per creare un'immagine di copertina fotorealistica per questo articolo. Formato: \`/imagine prompt: [descrizione dettagliata dell'immagine in inglese]\`"
+**8. Prompt per l'Immagine di Copertina (3 Opzioni):**
+Termina il prompt con una sezione per l'immagine, fornendo 3 alternative creative e descrittive (in inglese), senza comandi tecnici come /imagine o --ar:
+- "Infine, genera 3 prompt alternativi per Midjourney per creare un'immagine di copertina fotorealistica per questo articolo. I prompt devono essere puramente descrittivi."
+- Opzione 1:
+- Opzione 2:
+- Opzione 3:
 `;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
