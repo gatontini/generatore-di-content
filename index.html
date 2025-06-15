@@ -142,6 +142,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ... (resto del codice JS come prima, fino al planTableBody listener) ...
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
@@ -257,7 +258,8 @@
                     button.style.display = 'none';
                     addCopyButton(targetTextarea, document.getElementById('article-prompt-buttons'));
                 } else if (action === 'generate-seo-meta') {
-                    response = await fetch(`/.netlify/functions/generate-seo-meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem }) });
+                    // MODIFICATO: Ora inviamo anche userProfile per dare più contesto
+                    response = await fetch(`/.netlify/functions/generate-seo-meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, userProfile: userProfile }) });
                     if (!response.ok) throw new Error();
                     const { seoTitle, metaDescription } = await response.json();
                     const targetDiv = document.getElementById('seo-meta-output');
