@@ -14,25 +14,43 @@
         .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
         .plan-enter, .mindmap-enter, .modal-enter { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        #strategic-map-container { padding: 1rem; background-color: #e2e8f0; border-radius: 0.75rem; width: 100%; overflow-x: auto; }
-        .map-layout { display: flex; flex-direction: column; align-items: center; gap: 2rem; }
-        .pillars-grid { display: flex; gap: 1.5rem; width: max-content; min-width: 100%; align-items: start; padding-bottom: 1rem; }
-        .pillar-column, .new-ideas-column { width: 320px; flex-shrink: 0; background-color: #f8fafc; border-radius: 0.75rem; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .clusters-grid { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; border-top: 2px dashed #d1d5db; padding-top: 1rem; }
-        .cluster-sub-column { background-color: #ffffff; border-radius: 0.5rem; padding: 0.75rem; }
-        .support-card-list { min-height: 60px; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; border-top: 1px solid #e5e7eb; padding-top: 0.75rem; }
-        .content-card { padding: 0.75rem; border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); cursor: grab; border-left-width: 4px; position: relative; }
-        .content-card:active { cursor: grabbing; }
-        .delete-card-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background-color: #fee2e2; color: #b91c1c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; opacity: 0; transition: opacity 0.2s; }
-        .content-card:hover .delete-card-btn { opacity: 1; }
-        .card-landing { border-color: #4ade80; background-color: #f0fdf4; } /* Verde */
-        .card-pillar { border-color: #fb923c; background-color: #fff7ed; } /* Arancio */
-        .card-cluster { border-color: #a78bfa; background-color: #f5f3ff; } /* Violetto */
-        .card-support { border-color: #9ca3af; background-color: #f3f4f6; } /* Grigio */
-        .card-new { border-color: #60a5fa; background-color: #eff6ff; } /* Blu per nuove idee */
+        /* Stili Lavagna a Colonne */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            background-color: #e2e8f0;
+            border-radius: 0.75rem;
+            min-height: 60vh;
+        }
+        .board-column {
+            background-color: #f1f5f9;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-list {
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex-grow: 1;
+        }
+        .content-card {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            cursor: grab;
+        }
+        .content-card:active {
+            cursor: grabbing;
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
@@ -51,26 +69,25 @@
         <div id="wizard" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
             <h2 class="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">1. Raccontaci di te</h2>
             <div class="space-y-6">
-                <div> <label for="professione" class="block text-sm font-medium text-gray-600 mb-2">Chi sei?</label> <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Geometra"> </div>
-                <div> <label for="citta" class="block text-sm font-medium text-gray-600 mb-2">Dove operi?</label> <input type="text" id="citta" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Roma"> </div>
-                <div> <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali (Pillar)</label> <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Pratiche edilizie, Ristrutturazione casa..."> <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali, separati da una virgola.</p> </div>
+                <div> <label for="professione" class="block text-sm font-medium text-gray-600 mb-2">Chi sei?</label> <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Ingegnere Strutturista"> </div>
+                <div> <label for="citta" class="block text-sm font-medium text-gray-600 mb-2">Dove operi?</label> <input type="text" id="citta" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Firenze"> </div>
+                <div> <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali</label> <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Progettazione antisismica, Collaudo statico..."> <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali, separati da una virgola.</p> </div>
             </div>
             <div class="mt-8 text-center"> <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center mx-auto"> Crea Lavagna Strategica </button> </div>
         </div>
         
         <div id="mindMap" class="hidden mt-12 mindmap-enter">
             <h2 class="text-2xl font-semibold text-gray-700 mb-2">2. Organizza la tua Strategia</h2>
-            <p class="text-gray-600 mb-6 text-center">Trascina le idee per organizzarle sotto i pillar e i cluster corretti.</p>
-            <div id="strategic-map-container"></div>
+            <p class="text-gray-600 mb-6 text-center">Trascina le idee nelle colonne giuste. Usa i pulsanti per espandere il tuo piano.</p>
+            <div id="board" class="board"></div>
             <div id="mindMapControls" class="text-center mt-8 space-y-4">
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
-                    <button data-action="add-pillar" class="w-full md:w-auto bg-orange-500 text-white font-bold py-2 px-5 rounded-lg hover:bg-orange-600">🏛️ Aggiungi Pillar</button>
-                    <button data-action="add-cluster" class="w-full md:w-auto bg-purple-500 text-white font-bold py-2 px-5 rounded-lg hover:bg-purple-600">� Aggiungi Cluster</button>
-                    <button data-action="add-manual" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700">✍️ Aggiungi Supporto</button>
+                    <button data-action="add-manual" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700">✍️ Aggiungi le Tue Keyword</button>
+                    <button data-action="expand-ai" class="w-full md:w-auto text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 px-4 rounded-full font-semibold flex items-center gap-2 justify-center">✨ Chiedi 1 Idea all'AI</button>
                 </div>
-                 <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
-                    <button id="generateCalendarBtn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700"> Genera Calendario Finale </button>
-                    <button id="resetBtn" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600"> Ricomincia </button>
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
+                     <button id="generateCalendarBtn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700"> Genera Calendario Finale </button>
+                     <button id="resetBtn" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600"> Ricomincia </button>
                 </div>
             </div>
         </div>
@@ -92,203 +109,192 @@
             </div>
         </div>
         <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"> <div class="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full text-center"> <h3 id="modalTitle" class="text-xl font-bold text-yellow-500 mb-4">Ooops!</h3> <div id="modalMessage" class="text-gray-700 mb-6 space-y-2"></div> <button id="closeModalBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-600">Ho capito</button> </div> </div>
-        <div id="manualAddModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Aggiungi Contenuti di Supporto</h3><button id="closeManualAddModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6"> <label for="manual-keywords" class="block text-sm font-medium text-gray-700">Inserisci una o più keyword, una per riga.</label> <textarea id="manual-keywords" rows="5" class="mt-1 w-full p-2 border rounded-md" placeholder="es. costo cila roma&#10;migliori materiali ristrutturazione"></textarea> </div> <div class="p-4 border-t bg-white rounded-b-2xl"><button id="enrichKeywordsBtn" class="w-full bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex justify-center items-center">Arricchisci con AI</button></div> </div> </div>
+        <div id="manualAddModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Arricchisci con le Tue Keyword</h3><button id="closeManualAddModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6"> <label for="manual-keywords" class="block text-sm font-medium text-gray-700">Inserisci una o più keyword, una per riga.</label> <textarea id="manual-keywords" rows="5" class="mt-1 w-full p-2 border rounded-md" placeholder="es. costo progetto strutturale firenze&#10;progetto strutturale tettoia in legno"></textarea> </div> <div class="p-4 border-t bg-white rounded-b-2xl"><button id="enrichKeywordsBtn" class="w-full bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex justify-center items-center">Arricchisci con AI</button></div> </div> </div>
         <div id="promptModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[95vh] flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Genera Materiali AI</h3><button id="closePromptModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6 overflow-y-auto flex-grow"><div class="space-y-6"><div class="p-4 bg-white rounded-lg border"><h4 class="font-semibold text-gray-800 mb-2">Informazioni Base (per tutti i prompt)</h4><div class="space-y-2"><div><label for="prompt-studio" class="block text-xs font-medium text-gray-600">Nome Studio / Professionista</label><input type="text" id="prompt-studio" class="mt-1 w-full p-2 border rounded-md text-sm"></div><div><label for="prompt-meccanismo" class="block text-xs font-medium text-gray-600">Approccio / Meccanismo Unico</label><input type="text" id="prompt-meccanismo" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Es: Specializzati in ristrutturazioni chiavi in mano..."></div><div><label for="prompt-sitemap" class="block text-xs font-medium text-gray-600">URL della Sitemap (o pagine principali)</label><textarea id="prompt-sitemap" rows="3" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Incolla qui gli URL, uno per riga..."></textarea></div></div></div><div id="prompt-sections-container" class="space-y-4"></div></div></div> </div> </div>
-        <div id="inputModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"> <div class="p-4 border-b"> <h3 id="inputModalTitle" class="text-lg font-bold text-gray-800"></h3> </div> <div class="p-6"> <input type="text" id="inputModalField" class="w-full p-2 border rounded-md"> </div> <div class="p-4 border-t bg-white rounded-b-2xl flex justify-end gap-4"> <button id="inputModalCancelBtn" class="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">Annulla</button> <button id="inputModalConfirmBtn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700">Conferma</button> </div> </div> </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // --- DOM ELEMENTS ---
-        const wizardDiv = document.getElementById('wizard'); const generateMapBtn = document.getElementById('generateMapBtn');
-        const mindMapDiv = document.getElementById('mindMap'); const strategicMapContainer = document.getElementById('strategic-map-container'); const mindMapControls = document.getElementById('mindMapControls');
-        const generateCalendarBtn = document.getElementById('generateCalendarBtn'); const detailedPlanDiv = document.getElementById('detailedPlan'); const planTableBody = document.getElementById('planTableBody');
-        const resetBtn = document.getElementById('resetBtn'); const professioneInput = document.getElementById('professione'); const serviziInput = document.getElementById('servizi');
+        const wizardDiv = document.getElementById('wizard');
+        const generateMapBtn = document.getElementById('generateMapBtn');
+        const mindMapDiv = document.getElementById('mindMap');
+        const board = document.getElementById('board');
+        const mindMapControls = document.getElementById('mindMapControls');
+        const generateCalendarBtn = document.getElementById('generateCalendarBtn');
+        const detailedPlanDiv = document.getElementById('detailedPlan');
+        const planTableBody = document.getElementById('planTableBody');
+        const resetBtn = document.getElementById('resetBtn');
+        const professioneInput = document.getElementById('professione');
+        const serviziInput = document.getElementById('servizi');
+        // Modals...
         const messageModal = document.getElementById('messageModal'); const modalTitle = document.getElementById('modalTitle'); const modalMessage = document.getElementById('modalMessage'); const closeModalBtn = document.getElementById('closeModalBtn');
         const manualAddModal = document.getElementById('manualAddModal'); const closeManualAddModalBtn = document.getElementById('closeManualAddModalBtn'); const enrichKeywordsBtn = document.getElementById('enrichKeywordsBtn');
         const promptModal = document.getElementById('promptModal'); const promptSectionsContainer = document.getElementById('prompt-sections-container'); const closePromptModalBtn = document.getElementById('closePromptModalBtn');
-        const inputModal = document.getElementById('inputModal'); const inputModalTitle = document.getElementById('inputModalTitle'); const inputModalField = document.getElementById('inputModalField'); const inputModalCancelBtn = document.getElementById('inputModalCancelBtn'); const inputModalConfirmBtn = document.getElementById('inputModalConfirmBtn');
 
         // --- STATE ---
         let userProfile = {};
-        let mapData = {};
+        let boardData = {};
         let cardIdCounter = 0;
-        let onInputConfirm = null;
         
         // --- HELPERS ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
+        const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
-        function showInputModal(title, placeholder, confirmCallback) { inputModalTitle.textContent = title; inputModalField.placeholder = placeholder; inputModalField.value = ''; onInputConfirm = confirmCallback; inputModal.classList.remove('hidden'); inputModalField.focus(); }
-
         // --- CORE LOGIC ---
-        function createCard(cardData, cardClass) {
+        function renderBoard() {
+            board.innerHTML = '';
+            const columnStyles = { landing: { title: 'Contenuto Principale', color: 'bg-green-100' }, pillar: { title: 'Contenuto Pillar', color: 'bg-orange-100' }, support: { title: 'Contenuti di Supporto', color: 'bg-gray-200' }, new: { title: 'Nuove Idee', color: 'bg-blue-100' } };
+            Object.keys(boardData).forEach(columnId => {
+                const columnInfo = columnStyles[columnId] || { title: 'Colonna', color: 'bg-gray-200' };
+                const columnEl = document.createElement('div');
+                columnEl.className = 'board-column';
+                columnEl.innerHTML = `<h3 class="font-bold p-2 text-gray-700">${columnInfo.title}</h3><div id="column-${columnId}" class="card-list"></div>`;
+                board.appendChild(columnEl);
+                const cardListEl = columnEl.querySelector(`#column-${columnId}`);
+                if (boardData[columnId]) {
+                    boardData[columnId].forEach(cardData => cardListEl.appendChild(createCard(cardData, columnInfo.color)));
+                }
+                new Sortable(cardListEl, { group: 'shared', animation: 150, onEnd: updateDataOnDrag });
+            });
+        }
+
+        function updateDataOnDrag(evt) {
+            const cardId = evt.item.dataset.id;
+            const newColumnId = evt.to.id.replace('column-', '');
+            const oldColumnId = evt.from.id.replace('column-', '');
+            let movedCard;
+            const oldColumnCards = boardData[oldColumnId];
+            const cardIndex = oldColumnCards.findIndex(card => card.id == cardId);
+            if (cardIndex > -1) movedCard = oldColumnCards.splice(cardIndex, 1)[0];
+            if (movedCard) boardData[newColumnId].splice(evt.newDraggableIndex, 0, movedCard);
+        }
+        
+        function createCard(cardData, color) {
             const cardEl = document.createElement('div');
             cardData.id = cardData.id || `card-${cardIdCounter++}`;
             cardEl.dataset.id = cardData.id;
-            cardEl.className = `content-card ${cardClass}`;
-            cardEl.innerHTML = `<p class="font-semibold text-gray-800">${cardData.titolo}</p><p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p><button class="delete-card-btn">&times;</button>`;
+            cardEl.className = `content-card ${color}`;
+            cardEl.innerHTML = `<p contenteditable="true" class="font-semibold text-gray-800">${cardData.titolo}</p><p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>`;
+            cardEl.querySelector('p[contenteditable]').addEventListener('blur', (e) => {
+                 const newTitle = e.target.textContent.trim();
+                 for (const column in boardData) {
+                    const cardToUpdate = boardData[column].find(c => c.id == cardData.id);
+                    if (cardToUpdate) { cardToUpdate.titolo = newTitle; break; }
+                 }
+            });
             return cardEl;
         }
 
-        function findCardData(cardId) {
-            if (mapData.landing && mapData.landing.id === cardId) return { card: mapData.landing, parent: null, type: 'landing' };
-            for (const pillar of mapData.pillars) {
-                if (pillar.id === cardId) return { card: pillar, parent: mapData.pillars, type: 'pillar' };
-                for (const cluster of pillar.clusters) {
-                    if (cluster.id === cardId) return { card: cluster, parent: pillar.clusters, type: 'cluster' };
-                    const support = cluster.support.find(s => s.id === cardId);
-                    if (support) return { card: support, parent: cluster.support, type: 'support' };
-                }
-            }
-            const newIdea = mapData.newIdeas.find(i => i.id === cardId);
-            if (newIdea) return { card: newIdea, parent: mapData.newIdeas, type: 'new' };
-            return null;
+        function addCardsToBoard(cards, columnId = 'new') {
+            if (!boardData[columnId]) boardData[columnId] = [];
+            cards.forEach(card => boardData[columnId].push(card));
+            renderBoard();
         }
 
-        function removeCardFromData(cardId) {
-            const result = findCardData(cardId);
-            if (!result || !result.parent) return false;
-            const index = result.parent.findIndex(c => c.id === cardId);
-            if (index > -1) {
-                result.parent.splice(index, 1);
-                return true;
-            }
-            return false;
-        }
-        
-        function renderStrategicMap() {
-            strategicMapContainer.innerHTML = '';
-            const mapLayout = document.createElement('div');
-            mapLayout.className = 'map-layout';
-
-            if (mapData.landing) {
-                const landingContainer = document.createElement('div');
-                landingContainer.className = 'main-content-container';
-                landingContainer.appendChild(createCard(mapData.landing, 'card-landing'));
-                mapLayout.appendChild(landingContainer);
-            }
-            
-            const pillarsGrid = document.createElement('div');
-            pillarsGrid.className = 'pillars-grid';
-            new Sortable(pillarsGrid, { group: 'pillars', animation: 150 });
-            
-            mapData.pillars.forEach((pillar, pIndex) => {
-                const pillarColumn = document.createElement('div');
-                pillarColumn.className = 'pillar-column';
-                pillarColumn.appendChild(createCard(pillar, 'card-pillar'));
-
-                const clustersGrid = document.createElement('div');
-                clustersGrid.className = 'clusters-grid';
-                clustersGrid.dataset.pillarIndex = pIndex;
-                new Sortable(clustersGrid, { group: 'clusters', animation: 150 });
-
-                pillar.clusters.forEach((cluster, cIndex) => {
-                    const clusterSubCol = document.createElement('div');
-                    clusterSubCol.className = 'cluster-sub-column';
-                    clusterSubCol.appendChild(createCard(cluster, 'card-cluster'));
-
-                    const supportList = document.createElement('div');
-                    supportList.className = 'support-card-list';
-                    supportList.dataset.clusterIndex = cIndex;
-                    cluster.support.forEach(support => {
-                        supportList.appendChild(createCard(support, 'card-support'));
-                    });
-                    clusterSubCol.appendChild(supportList);
-                    clustersGrid.appendChild(clusterSubCol);
-                    new Sortable(supportList, { group: 'shared-support', animation: 150 });
-                });
-                pillarColumn.appendChild(clustersGrid);
-                pillarsGrid.appendChild(pillarColumn);
-            });
-            
-            const newIdeasColumn = document.createElement('div');
-            newIdeasColumn.className = 'new-ideas-column';
-            newIdeasColumn.innerHTML = `<h3 class="font-bold p-2 text-gray-700 text-center">Nuove Idee</h3>`;
-            const newIdeasList = document.createElement('div');
-            newIdeasList.className = 'support-card-list';
-            newIdeasList.id = 'new-ideas-list';
-            mapData.newIdeas.forEach(idea => {
-                newIdeasList.appendChild(createCard(idea, 'card-new'));
-            });
-            newIdeasColumn.appendChild(newIdeasList);
-            pillarsGrid.appendChild(newIdeasColumn);
-            
-            new Sortable(newIdeasList, { group: 'shared-support', animation: 150 });
-            
-            mapLayout.appendChild(pillarsGrid);
-            strategicMapContainer.appendChild(mapLayout);
-        }
-        
+        // --- EVENT LISTENERS ---
         generateMapBtn.addEventListener('click', () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim();
             if (!professione || !citta || servizi.length === 0) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
-            
             userProfile = { professione, servizi, citta };
-            const cittaC = capitalizeFirstLetter(citta);
-            
-            mapData = {
-                landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`},
-                pillars: servizi.map(servizio => ({
-                    titolo: `Guida a ${capitalizeFirstLetter(servizio)} a ${cittaC}`,
-                    keyword: `guida ${servizio.toLowerCase()} ${citta.toLowerCase()}`,
-                    clusters: [{ 
-                        titolo: `Costo ${capitalizeFirstLetter(servizio)} a ${cittaC}`, 
-                        keyword: `costo ${servizio.toLowerCase()} ${citta.toLowerCase()}`,
-                        support: []
-                    }]
-                })),
-                newIdeas: []
+            const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0]; const s2 = servizi[1];
+            boardData = {
+                landing: [{ titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}` }],
+                pillar: [{ titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}` }],
+                support: [
+                    { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}` },
+                    s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}` }
+                ],
+                new: []
             };
+            wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
+            renderBoard();
+        });
 
-            wizardDiv.classList.add('hidden');
-            mindMapDiv.classList.remove('hidden');
-            detailedPlanDiv.classList.add('hidden');
-            renderStrategicMap(); 
+        mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = Object.values(boardData).flat(); const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); addCardsToBoard([{...newCluster, tipo: 'Suggerito da AI'}]); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
+        enrichKeywordsBtn.addEventListener('click', async () => { const keywordsText = document.getElementById('manual-keywords').value.trim(); if (!keywordsText) return; const keywords = keywordsText.split('\n').filter(k => k.trim() !== ''); enrichKeywordsBtn.innerHTML = `<div class="loader"></div>`; enrichKeywordsBtn.disabled = true; try { const response = await fetch(`/.netlify/functions/enrich-keywords`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords, userProfile }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); addCardsToBoard(newClusters.map(c => ({...c, tipo: 'Manuale'}))); manualAddModal.classList.add('hidden'); } catch(error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { enrichKeywordsBtn.innerHTML = `Arricchisci con AI`; enrichKeywordsBtn.disabled = false; } });
+        
+        generateCalendarBtn.addEventListener('click', () => {
+            planTableBody.innerHTML = '';
+            const allCards = [...(boardData.landing || []), ...(boardData.pillar || []), ...(boardData.support || []), ...(boardData.new || [])];
+            allCards.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.dataset.id = item.id;
+                row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">🤖 Genera Prompt AI</button></td>`;
+                planTableBody.appendChild(row);
+            });
+            detailedPlanDiv.classList.remove('hidden');
+            detailedPlanDiv.scrollIntoView();
         });
         
-        mindMapControls.addEventListener('click', (e) => {
+        planTableBody.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (!button || button.dataset.action !== 'write-ai') return;
+            const row = button.closest('tr');
+            const cardId = row.dataset.id;
+            const allCards = [...(boardData.landing || []), ...(boardData.pillar || []), ...(boardData.support || []), ...(boardData.new || [])];
+            currentContentItem = allCards.find(c => c.id == cardId);
+            if (!currentContentItem) return;
+            document.getElementById('prompt-studio').value = capitalizeFirstLetter(userProfile.professione);
+            promptSectionsContainer.innerHTML = `
+                <div class="p-4 bg-white rounded-lg border"><h4 class="font-semibold text-gray-800 mb-2">1. Prompt per l'Articolo</h4><textarea id="prompt-article" rows="12" class="w-full p-2 border rounded-md bg-gray-100 font-mono text-xs" readonly></textarea><div class="mt-2" id="article-prompt-buttons-container"><button data-action="generate-article-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg">Genera</button></div></div>
+                <div class="p-4 bg-white rounded-lg border"><h4 class="font-semibold text-gray-800 mb-2">2. Meta Dati SEO</h4><div id="seo-meta-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div><div class="mt-2" id="seo-meta-buttons-container"><button data-action="generate-seo-meta" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg">Genera</button></div></div>
+                <div class="p-4 bg-white rounded-lg border"><h4 class="font-semibold text-gray-800 mb-2">3. Prompt per Immagine (Midjourney)</h4><div id="image-prompt-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div><div class="mt-2" id="image-prompt-buttons-container"><button data-action="generate-image-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg">Genera</button></div></div>`;
+            promptModal.classList.remove('hidden');
+        });
+        
+        promptSectionsContainer.addEventListener('click', async (e) => {
             const button = e.target.closest('button');
             if (!button || !button.dataset.action) return;
             const action = button.dataset.action;
-            if (action === 'add-pillar') {
-                showInputModal("Aggiungi un nuovo Pillar", "Es: Pratiche Catastali", (name) => {
-                    mapData.pillars.push({ titolo: `Guida a ${capitalizeFirstLetter(name)}`, keyword: `guida ${name.toLowerCase()}`, clusters: [] });
-                    renderStrategicMap();
-                });
-            } else if (action === 'add-cluster') {
-                 showInputModal("Aggiungi un nuovo Cluster", "Es: CILA a Roma", (name) => {
-                    if (mapData.pillars.length > 0) {
-                       mapData.pillars[0].clusters.push({ titolo: name, keyword: name.toLowerCase().replace(/ /g, '-'), support: [] });
-                       renderStrategicMap();
-                    } else {
-                       showModal('Attenzione!', 'Devi avere almeno un Pillar per aggiungere un Cluster.');
-                    }
-                });
-            } else if (action === 'add-manual') {
-                manualAddModal.classList.remove('hidden');
-            }
-        });
-
-        strategicMapContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('delete-card-btn')) {
-                const cardEl = e.target.closest('.content-card');
-                if (cardEl) {
-                    const cardId = cardEl.dataset.id;
-                    if(removeCardFromData(cardId)){
-                       renderStrategicMap();
-                    }
+            const nomeStudio = document.getElementById('prompt-studio').value.trim();
+            const meccanismoUnico = document.getElementById('prompt-meccanismo').value.trim();
+            const sitemapUrls = document.getElementById('prompt-sitemap').value.trim();
+            if (action !== 'generate-article-prompt' && (!nomeStudio || !meccanismoUnico)) { showModal('Attenzione!', 'Compila "Nome Studio" e "Approccio Unico".'); return; }
+            button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
+            try {
+                let response, data, targetElement, parentElement;
+                switch(action) {
+                    case 'generate-article-prompt':
+                        response = await fetch(`/.netlify/functions/generate-article-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, nomeStudio, meccanismoUnico, sitemapUrls }) });
+                        if (!response.ok) throw new Error();
+                        data = await response.json();
+                        targetElement = document.getElementById('prompt-article');
+                        targetElement.value = data.prompt;
+                        parentElement = document.getElementById('article-prompt-buttons-container');
+                        addCopyButton(targetElement, parentElement);
+                        break;
+                    case 'generate-seo-meta':
+                        response = await fetch(`/.netlify/functions/generate-seo-meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, userProfile: userProfile }) });
+                        if (!response.ok) throw new Error();
+                        data = await response.json();
+                        targetElement = document.getElementById('seo-meta-output');
+                        targetElement.innerHTML = `<p><strong>Titolo SEO:</strong> ${data.seoTitle}</p><p class="mt-2"><strong>Meta Description:</strong> ${data.metaDescription}</p>`;
+                        parentElement = document.getElementById('seo-meta-buttons-container');
+                        addCopyButton(targetElement, parentElement);
+                        break;
+                    case 'generate-image-prompt':
+                        response = await fetch(`/.netlify/functions/generate-image-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem }) });
+                        if (!response.ok) throw new Error();
+                        data = await response.json();
+                        targetElement = document.getElementById('image-prompt-output');
+                        targetElement.innerHTML = `<ul class="list-disc list-inside text-left">${data.prompts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+                        parentElement = document.getElementById('image-prompt-buttons-container');
+                        addCopyButton(targetElement, parentElement);
+                        break;
                 }
+            } catch (error) {
+                showModal('Ooops!', friendlyErrorMessage, false);
+                button.innerHTML = "Genera"; button.disabled = false;
             }
         });
-        
+        function addCopyButton(targetElement, parentElement) { parentElement.innerHTML = ''; const copyBtn = document.createElement('button'); copyBtn.textContent = 'Copia Prompt'; copyBtn.className = 'w-full bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg'; copyBtn.onclick = () => { const content = targetElement.value || targetElement.innerText; navigator.clipboard.writeText(content).then(() => { copyBtn.textContent = 'Copiato!'; setTimeout(() => { copyBtn.textContent = 'Copia Prompt'; }, 2000); }); }; parentElement.appendChild(copyBtn); }
+
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
         closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
         closeManualAddModalBtn.addEventListener('click', () => manualAddModal.classList.add('hidden'));
-        inputModalConfirmBtn.addEventListener('click', () => { if (onInputConfirm) { const value = inputModalField.value.trim(); if (value) { onInputConfirm(value); inputModal.classList.add('hidden'); onInputConfirm = null; } } });
-        inputModalCancelBtn.addEventListener('click', () => { inputModal.classList.add('hidden'); onInputConfirm = null; });
     });
     </script>
 </body>
 </html>
-�
