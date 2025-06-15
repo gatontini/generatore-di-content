@@ -19,7 +19,7 @@ exports.handler = async function (event, context) {
 
     console.log("Keyword ricevute:", keywords.join(', '));
 
-    const prompt = `Sei un esperto SEO per il settore edile. Un utente (${userProfile.professione} a ${userProfile.citta}) ha fornito questo elenco di keyword:\n- ${keywords.join('\n- ')}\nPer ogni keyword, crea un oggetto JSON con "titolo" (un titolo di articolo SEO-friendly che includa la città di ${userProfile.citta}), "keyword" (la keyword originale), "tipo" ('Approfondimento'), e "sinossi" (una frase descrittiva di 15-20 parole). Rispondi solo con un array JSON di questi oggetti. Assicurati che il JSON sia valido.`;
+    const prompt = `Sei un esperto SEO per il settore edile. Un utente (${userProfile.professione} a ${userProfile.citta}) ha fornito questo elenco di keyword:\n- ${keywords.join('\n- ')}\nPer ogni keyword, crea un oggetto JSON con "titolo" (un titolo di articolo SEO-friendly che includa la città di ${userProfile.citta}), "keyword" (la keyword originale), "tipo" ('Approfondimento'), e "sinossi" (una frase descrittiva di 15-20 parole). Rispondi solo con un array JSON di questi oggetti, contenuto dentro una chiave "ideas". Assicurati che il JSON sia valido.`;
 
     console.log("PROMPT INVIATO A OPENAI:", prompt);
 
@@ -41,7 +41,18 @@ exports.handler = async function (event, context) {
     console.log("RISPOSTA RAW DA OPENAI:", rawContent);
     
     const result = JSON.parse(rawContent);
-    const ideasArray = Array.isArray(result) ? result : (result.ideas || result.clusters || []);
+
+    // --- CORREZIONE DEFINITIVA ---
+    // Rende il codice flessibile: cerca la prima chiave che contiene un array
+    let ideasArray = [];
+    if (Array.isArray(result)) {
+        ideasArray = result;
+    } else if (typeof result === 'object' && result !== null) {
+        const keyWithArray = Object.keys(result).find(k => Array.isArray(result[k]));
+        if (keyWithArray) {
+            ideasArray = result[keyWithArray];
+        }
+    }
     
     console.log("Idee parsate correttamente:", ideasArray.length);
     
