@@ -18,56 +18,16 @@
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Stili Mappa Verticale */
-        #strategic-map-container {
-            padding: 1rem;
-            background-color: #e2e8f0;
-            border-radius: 0.75rem;
-            min-height: 70vh;
-            width: 100%;
-            overflow-x: auto;
-        }
-        .map-layout {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
-        }
-        .pillars-grid {
-            display: flex;
-            gap: 1.5rem;
-            width: 100%;
-            align-items: start;
-            padding-bottom: 1rem;
-        }
-        .pillar-column, .new-ideas-column {
-            width: 300px;
-            flex-shrink: 0;
-            background-color: #f8fafc;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .support-card-list {
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-top: 1rem;
-            border-top: 2px dashed #d1d5db;
-            padding-top: 1rem;
-        }
-        .content-card {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-            cursor: grab;
-            border-left-width: 4px;
-        }
+        #strategic-map-container { padding: 1rem; background-color: #e2e8f0; border-radius: 0.75rem; width: 100%; overflow-x: auto; }
+        .map-layout { display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+        .pillars-grid { display: flex; gap: 1.5rem; width: 100%; align-items: start; padding-bottom: 1rem; }
+        .pillar-column, .new-ideas-column { width: 320px; flex-shrink: 0; background-color: #f8fafc; border-radius: 0.75rem; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .support-card-list { min-height: 80px; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; border-top: 2px dashed #d1d5db; padding-top: 1rem; }
+        .content-card { padding: 1rem; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); cursor: grab; border-left-width: 4px; }
         .content-card:active { cursor: grabbing; }
         .card-landing { border-color: #4ade80; background-color: #f0fdf4; }
         .card-pillar { border-color: #fb923c; background-color: #fff7ed; }
-        .card-support { border-color: #9ca3af; background-color: #f3f4f6; }
+        .card-support { border-color: #9ca3af; background-color: #f1f5f9; }
         .card-new { border-color: #60a5fa; background-color: #eff6ff; }
     </style>
 </head>
@@ -89,7 +49,7 @@
             <div class="space-y-6">
                 <div> <label for="professione" class="block text-sm font-medium text-gray-600 mb-2">Chi sei?</label> <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Ingegnere Strutturista"> </div>
                 <div> <label for="citta" class="block text-sm font-medium text-gray-600 mb-2">Dove operi?</label> <input type="text" id="citta" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Firenze"> </div>
-                <div> <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali</label> <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Pratiche edilizie, Ristrutturazione casa..."> <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali, separati da una virgola.</p> </div>
+                <div> <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali</label> <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Pratiche edilizie, Ristrutturazione casa..."> <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali (Pillar), separati da una virgola.</p> </div>
             </div>
             <div class="mt-8 text-center"> <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center mx-auto"> Crea Lavagna Strategica </button> </div>
         </div>
@@ -100,7 +60,7 @@
             <div id="strategic-map-container"></div>
             <div id="mindMapControls" class="text-center mt-8 space-y-4">
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
-                    <button data-action="add-manual" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700">✍️ Aggiungi le Tue Keyword</button>
+                    <button data-action="add-manual" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700">✍️ Aggiungi Contenuti di Supporto</button>
                     <button data-action="expand-ai" class="w-full md:w-auto text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 px-4 rounded-full font-semibold flex items-center gap-2 justify-center">✨ Chiedi 1 Idea all'AI</button>
                 </div>
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
@@ -127,11 +87,12 @@
             </div>
         </div>
         <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50"> <div class="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full text-center"> <h3 id="modalTitle" class="text-xl font-bold text-yellow-500 mb-4">Ooops!</h3> <div id="modalMessage" class="text-gray-700 mb-6 space-y-2"></div> <button id="closeModalBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-600">Ho capito</button> </div> </div>
-        <div id="manualAddModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Arricchisci con le Tue Keyword</h3><button id="closeManualAddModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6"> <label for="manual-keywords" class="block text-sm font-medium text-gray-700">Inserisci una o più keyword, una per riga.</label> <textarea id="manual-keywords" rows="5" class="mt-1 w-full p-2 border rounded-md" placeholder="es. costo progetto strutturale firenze&#10;progetto strutturale tettoia in legno"></textarea> </div> <div class="p-4 border-t bg-white rounded-b-2xl"><button id="enrichKeywordsBtn" class="w-full bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex justify-center items-center">Arricchisci con AI</button></div> </div> </div>
+        <div id="manualAddModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Aggiungi Contenuti di Supporto</h3><button id="closeManualAddModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6"> <label for="manual-keywords" class="block text-sm font-medium text-gray-700">Inserisci una o più keyword, una per riga.</label> <textarea id="manual-keywords" rows="5" class="mt-1 w-full p-2 border rounded-md" placeholder="es. costo cila roma&#10;migliori materiali ristrutturazione"></textarea> </div> <div class="p-4 border-t bg-white rounded-b-2xl"><button id="enrichKeywordsBtn" class="w-full bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex justify-center items-center">Arricchisci con AI</button></div> </div> </div>
         <div id="promptModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[95vh] flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Genera Materiali AI</h3><button id="closePromptModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6 overflow-y-auto flex-grow"><div class="space-y-6"><div class="p-4 bg-white rounded-lg border"><h4 class="font-semibold text-gray-800 mb-2">Informazioni Base (per tutti i prompt)</h4><div class="space-y-2"><div><label for="prompt-studio" class="block text-xs font-medium text-gray-600">Nome Studio / Professionista</label><input type="text" id="prompt-studio" class="mt-1 w-full p-2 border rounded-md text-sm"></div><div><label for="prompt-meccanismo" class="block text-xs font-medium text-gray-600">Approccio / Meccanismo Unico</label><input type="text" id="prompt-meccanismo" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Es: Specializzati in ristrutturazioni chiavi in mano..."></div><div><label for="prompt-sitemap" class="block text-xs font-medium text-gray-600">URL della Sitemap (o pagine principali)</label><textarea id="prompt-sitemap" rows="3" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Incolla qui gli URL, uno per riga..."></textarea></div></div></div><div id="prompt-sections-container" class="space-y-4"></div></div></div> </div> </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- DOM ELEMENTS ---
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
@@ -143,17 +104,21 @@
         const resetBtn = document.getElementById('resetBtn');
         const professioneInput = document.getElementById('professione');
         const serviziInput = document.getElementById('servizi');
+        // Modals
         const messageModal = document.getElementById('messageModal'); const modalTitle = document.getElementById('modalTitle'); const modalMessage = document.getElementById('modalMessage'); const closeModalBtn = document.getElementById('closeModalBtn');
         const manualAddModal = document.getElementById('manualAddModal'); const closeManualAddModalBtn = document.getElementById('closeManualAddModalBtn'); const enrichKeywordsBtn = document.getElementById('enrichKeywordsBtn');
         const promptModal = document.getElementById('promptModal'); const promptSectionsContainer = document.getElementById('prompt-sections-container'); const closePromptModalBtn = document.getElementById('closePromptModalBtn');
 
+        // --- STATE ---
         let userProfile = {};
         let mapData = {};
         
+        // --- HELPERS ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
+        // --- CORE LOGIC ---
         let cardIdCounter = 0;
         function createCard(cardData, cardClass) {
             const cardEl = document.createElement('div');
@@ -170,19 +135,16 @@
             const mapLayout = document.createElement('div');
             mapLayout.className = 'map-layout';
 
-            // 1. Render Landing Page
-            const landingContainer = document.createElement('div');
-            landingContainer.className = 'main-content-container';
             if (mapData.landing) {
+                const landingContainer = document.createElement('div');
+                landingContainer.className = 'main-content-container';
                 landingContainer.appendChild(createCard(mapData.landing, 'card-landing'));
+                mapLayout.appendChild(landingContainer);
             }
-            mapLayout.appendChild(landingContainer);
             
-            // 2. Render Pillars and their clusters in a grid
             const pillarsGrid = document.createElement('div');
             pillarsGrid.className = 'pillars-grid';
             
-            // Colonne dei Pillar
             mapData.pillars.forEach((pillar, index) => {
                 const pillarColumn = document.createElement('div');
                 pillarColumn.className = 'pillar-column';
@@ -190,7 +152,7 @@
 
                 const supportList = document.createElement('div');
                 supportList.className = 'support-card-list';
-                supportList.id = `pillar-${index}-support`;
+                supportList.dataset.pillarIndex = index;
                 pillar.clusters.forEach(cluster => {
                     supportList.appendChild(createCard(cluster, 'card-support'));
                 });
@@ -200,9 +162,8 @@
                 new Sortable(supportList, { group: 'shared-clusters', animation: 150 });
             });
             
-            // 3. Render New Ideas Column
             const newIdeasColumn = document.createElement('div');
-            newIdeasColumn.className = 'pillar-column bg-blue-50';
+            newIdeasColumn.className = 'new-ideas-column';
             newIdeasColumn.innerHTML = `<h3 class="font-bold p-2 text-gray-700 text-center">Nuove Idee</h3>`;
             const newIdeasList = document.createElement('div');
             newIdeasList.className = 'support-card-list';
@@ -219,6 +180,43 @@
             strategicMapContainer.appendChild(mapLayout);
         }
 
+        function updateDataFromDOM() {
+            const newMapData = {
+                landing: mapData.landing,
+                pillars: [],
+                newIdeas: []
+            };
+
+            mapData.pillars.forEach((pillar, index) => {
+                const newPillar = { ...pillar, clusters: [] };
+                const supportList = document.getElementById(`pillar-${index}-support`);
+                if (supportList) {
+                    Array.from(supportList.children).forEach(cardEl => {
+                        const cardId = cardEl.dataset.id;
+                        const originalCard = findCardById(cardId);
+                        if (originalCard) newPillar.clusters.push(originalCard);
+                    });
+                }
+                newMapData.pillars.push(newPillar);
+            });
+
+            const newIdeasList = document.getElementById('new-ideas-list');
+            if (newIdeasList) {
+                Array.from(newIdeasList.children).forEach(cardEl => {
+                    const cardId = cardEl.dataset.id;
+                    const originalCard = findCardById(cardId);
+                    if (originalCard) newMapData.newIdeas.push(originalCard);
+                });
+            }
+            mapData = newMapData;
+        }
+
+        function findCardById(cardId) {
+            const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas];
+            return allCards.find(c => c && c.id == cardId);
+        }
+
+        // --- EVENT LISTENERS ---
         generateMapBtn.addEventListener('click', () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim();
             if (!professione || !citta || servizi.length === 0) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
@@ -231,9 +229,7 @@
                 pillars: servizi.map(servizio => ({
                     titolo: `Guida a ${capitalizeFirstLetter(servizio)} a ${cittaC}`,
                     keyword: `guida ${servizio.toLowerCase()} ${citta.toLowerCase()}`,
-                    clusters: [
-                         { titolo: `Costo ${capitalizeFirstLetter(servizio)} a ${cittaC}`, keyword: `costo ${servizio.toLowerCase()} ${citta.toLowerCase()}` }
-                    ]
+                    clusters: [{ titolo: `Costo ${capitalizeFirstLetter(servizio)} a ${cittaC}`, keyword: `costo ${servizio.toLowerCase()} ${citta.toLowerCase()}` }]
                 })),
                 newIdeas: []
             };
@@ -244,11 +240,11 @@
             renderStrategicMap(); 
         });
         
-        // ... (il resto degli event listener rimane quasi identico, ma deve operare su `mapData` e `renderStrategicMap`)
-        mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas]; const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); mapData.newIdeas.push(newCluster); renderStrategicMap(); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
+        mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas]; const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster che sia strettamente pertinente ai servizi offerti. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); mapData.newIdeas.push(newCluster); renderStrategicMap(); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
         enrichKeywordsBtn.addEventListener('click', async () => { const keywordsText = document.getElementById('manual-keywords').value.trim(); if (!keywordsText) return; const keywords = keywordsText.split('\n').filter(k => k.trim() !== ''); enrichKeywordsBtn.innerHTML = `<div class="loader"></div>`; enrichKeywordsBtn.disabled = true; try { const response = await fetch(`/.netlify/functions/enrich-keywords`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords, userProfile }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); mapData.newIdeas.push(...newClusters); renderStrategicMap(); manualAddModal.classList.add('hidden'); } catch(error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { enrichKeywordsBtn.innerHTML = `Arricchisci con AI`; enrichKeywordsBtn.disabled = false; } });
         
         generateCalendarBtn.addEventListener('click', () => {
+            updateDataFromDOM(); // Assicura che i dati siano aggiornati prima di generare
             planTableBody.innerHTML = '';
             const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas];
             allCards.forEach((item, index) => {
