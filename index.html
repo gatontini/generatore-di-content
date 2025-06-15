@@ -222,7 +222,7 @@
         }
 
         // --- GESTIONE DATI E CHIAMATE AI ---
-        generateMapBtn.addEventListener('click', async () => {
+        generateMapBtn.addEventListener('click', () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim(); const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
             
