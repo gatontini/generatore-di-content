@@ -142,7 +142,6 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ... (resto del codice JS come prima, fino al planTableBody listener) ...
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
@@ -166,7 +165,6 @@
         let allContentForCalendar = [];
         let currentContentItem = {};
         
-        // ... (funzioni capitalizeFirstLetter, showModal, friendlyErrorMessage, renderMindMap, createNodeHtml, generateMapBtn listener, mindMapContainer listener) ...
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>Ci state sfondando l'A.I.!!</p><p class="mt-2">Troppe persone stanno usando il generatore, causando ritardi.</p><p class="mt-4">Attendi un istante e riprova.</p><p class="mt-4 text-xs italic">P.S. Grazie perché ci stai usando!</p>`;
@@ -177,7 +175,7 @@
         mindMapContainer.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action, type, index } = button.dataset; if (action === 'delete') { if (type === 'pillar') { showModal('Attenzione!', 'Il Pillar non può essere eliminato.'); return; } mindMapData[type].splice(index, 1); renderMindMap(); } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const { professione, servizi, citta } = userProfile; const existingTitles = [mindMapData.landing.titolo, mindMapData.pillar.titolo, ...mindMapData.clusters.map(c => c.titolo)].join(', '); const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Obbligo: ogni titolo deve includere la città di ${citta}. Per ogni idea, fornisci: "titolo", "keyword", "tipo", e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); newClusters.forEach(cluster => { mindMapData.clusters.push({ ...cluster, tipo: 'Suggerito da AI' }); }); renderMindMap(); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); button.innerHTML = '✨ Amplia con AI'; button.disabled = false; } } });
         mindMapContainer.addEventListener('focusout', (e) => { const p = e.target; if (p.dataset.action === 'edit-title') { const { type, index } = p.dataset; const newTitle = p.textContent.trim(); (type === 'clusters' ? mindMapData.clusters[index] : mindMapData[type]).titolo = newTitle; } });
         generateCalendarBtn.addEventListener('click', () => { planTableBody.innerHTML = ''; allContentForCalendar = [mindMapData.landing, mindMapData.pillar, ...mindMapData.clusters]; allContentForCalendar.forEach((item, index) => { const row = document.createElement('tr'); row.dataset.index = index; row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">🤖 Genera Prompt AI</button></td>`; planTableBody.appendChild(row); }); detailedPlanDiv.classList.remove('hidden'); detailedPlanDiv.scrollIntoView(); });
-
+        
         planTableBody.addEventListener('click', (e) => {
             const button = e.target.closest('button');
             if (!button || button.dataset.action !== 'write-ai') return;
@@ -193,23 +191,45 @@
                 <div class="p-4 bg-white rounded-lg border">
                     <h4 class="font-semibold text-gray-800 mb-2">1. Prompt per l'Articolo</h4>
                     <textarea id="prompt-article" rows="12" class="w-full p-2 border rounded-md bg-gray-100 font-mono text-xs" readonly placeholder="Clicca 'Genera' per creare il prompt..."></textarea>
-                    <button data-action="generate-article-prompt" class="mt-2 w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera Prompt Articolo</button>
+                    <div class="mt-2" id="article-prompt-buttons">
+                        <button data-action="generate-article-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera Prompt Articolo</button>
+                    </div>
                 </div>
                 <!-- Sezione Meta Dati -->
                 <div class="p-4 bg-white rounded-lg border">
                     <h4 class="font-semibold text-gray-800 mb-2">2. Meta Dati SEO</h4>
-                    <div id="seo-meta-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem]"></div>
-                    <button data-action="generate-seo-meta" class="mt-2 w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera Titolo SEO & Meta Description</button>
+                    <div id="seo-meta-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div>
+                    <div class="mt-2" id="seo-meta-buttons">
+                        <button data-action="generate-seo-meta" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera Titolo SEO & Meta Description</button>
+                    </div>
                 </div>
                 <!-- Sezione Prompt Immagine -->
                 <div class="p-4 bg-white rounded-lg border">
                     <h4 class="font-semibold text-gray-800 mb-2">3. Prompt per Immagine (Midjourney)</h4>
-                    <div id="image-prompt-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem]"></div>
-                    <button data-action="generate-image-prompt" class="mt-2 w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera 3 Prompt Immagine</button>
+                    <div id="image-prompt-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div>
+                    <div class="mt-2" id="image-prompt-buttons">
+                         <button data-action="generate-image-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera 3 Prompt Immagine</button>
+                    </div>
                 </div>
             `;
             promptModal.classList.remove('hidden');
         });
+
+        // Funzione helper per creare e gestire il pulsante di copia
+        function addCopyButton(targetElement, parentElement) {
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Copia';
+            copyBtn.className = 'mt-2 w-full bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-green-700';
+            
+            copyBtn.onclick = () => {
+                const content = targetElement.value || targetElement.innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    copyBtn.textContent = 'Copiato!';
+                    setTimeout(() => { copyBtn.textContent = 'Copia'; }, 2000);
+                });
+            };
+            parentElement.appendChild(copyBtn);
+        }
 
         promptSectionsContainer.addEventListener('click', async (e) => {
             const button = e.target.closest('button');
@@ -232,30 +252,37 @@
                     response = await fetch(`/.netlify/functions/generate-article-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, nomeStudio, meccanismoUnico, sitemapUrls }) });
                     if (!response.ok) throw new Error();
                     const { prompt } = await response.json();
-                    document.getElementById('prompt-article').value = prompt;
+                    const targetTextarea = document.getElementById('prompt-article');
+                    targetTextarea.value = prompt;
+                    button.style.display = 'none';
+                    addCopyButton(targetTextarea, document.getElementById('article-prompt-buttons'));
                 } else if (action === 'generate-seo-meta') {
                     response = await fetch(`/.netlify/functions/generate-seo-meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem }) });
                     if (!response.ok) throw new Error();
                     const { seoTitle, metaDescription } = await response.json();
-                    document.getElementById('seo-meta-output').innerHTML = `<p><strong>Titolo SEO:</strong> ${seoTitle}</p><p class="mt-2"><strong>Meta Description:</strong> ${metaDescription}</p>`;
+                    const targetDiv = document.getElementById('seo-meta-output');
+                    targetDiv.innerHTML = `<p><strong>Titolo SEO:</strong> ${seoTitle}</p><p class="mt-2"><strong>Meta Description:</strong> ${metaDescription}</p>`;
+                    button.style.display = 'none';
+                    addCopyButton(targetDiv, document.getElementById('seo-meta-buttons'));
                 } else if (action === 'generate-image-prompt') {
                     response = await fetch(`/.netlify/functions/generate-image-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem }) });
                     if (!response.ok) throw new Error();
                     const { prompts } = await response.json();
-                    document.getElementById('image-prompt-output').innerHTML = `<ul class="list-disc list-inside"><li>${prompts.join('</li><li>')}</li></ul>`;
+                    const targetDiv = document.getElementById('image-prompt-output');
+                    targetDiv.innerHTML = `<ul class="list-disc list-inside text-left">${prompts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+                    button.style.display = 'none';
+                    addCopyButton(targetDiv, document.getElementById('image-prompt-buttons'));
                 }
             } catch (error) {
                 showModal('Ooops!', friendlyErrorMessage, false);
-            } finally {
                 button.innerHTML = button.textContent; // Ripristina testo originale
                 button.disabled = false;
             }
         });
         
-        // ... (resto degli event listener: copy, reset, close modals) ...
-        closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
+        closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
     });
     </script>
 </body>
