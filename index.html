@@ -1,291 +1,54 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generatore di Calendario SEO con AI Strategica</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
-        .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
-        .plan-enter, .mindmap-enter, .modal-enter { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
-        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="gradient-bg min-h-screen">
+// Questo è il nuovo codice per: /netlify/functions/generate-article-prompt.js
 
-    <div class="container mx-auto p-4 md:p-8">
-        
-        <header class="text-center mb-8 pt-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Generatore di Calendario Editoriale SEO</h1>
-        </header>
-        
-        <div id="intro" class="bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-10 text-center">
-            <h2 class="text-xl font-bold text-gray-700 mb-2">Dall'Idea al Prompt Perfetto.</h2>
-            <p class="text-gray-600">Questo strumento ti aiuta a pianificare i contenuti e a generare prompt professionali per la tua AI preferita, creando articoli pronti per essere pubblicati.</p>
-        </div>
+exports.handler = async function (event, context) {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
 
-        <!-- FASE 1: WIZARD / INPUT -->
-        <div id="wizard" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg mb-8">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">1. Raccontaci di te</h2>
-            <div class="space-y-6">
-                <div>
-                    <label for="professione" class="block text-sm font-medium text-gray-600 mb-2">Chi sei?</label>
-                    <input type="text" id="professione" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Architetto specializzato in bioedilizia">
-                </div>
-                <div>
-                    <label for="citta" class="block text-sm font-medium text-gray-600 mb-2">Dove operi?</label>
-                    <input type="text" id="citta" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Firenze">
-                </div>
-                <div>
-                    <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali</label>
-                    <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Ristrutturazione appartamenti, Direzione lavori...">
-                    <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali, separati da una virgola.</p>
-                </div>
-                <div>
-                    <label for="domanda_frequente" class="block text-sm font-medium text-gray-600 mb-2">Domanda frequente dei clienti</label>
-                    <input type="text" id="domanda_frequente" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Quanto costa ristrutturare casa a Roma?">
-                </div>
-            </div>
-            <div class="mt-8 text-center">
-                <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center mx-auto">
-                    Crea Mappa Mentale
-                </button>
-            </div>
-        </div>
-        
-        <!-- FASE 2: MAPPA MENTALE EDITABILE -->
-        <div id="mindMap" class="hidden mt-12 mindmap-enter">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-2">2. Personalizza la tua Mappa Strategica</h2>
-            <p class="text-gray-600 mb-6 text-center">Clicca sul testo per modificarlo. Usa l'AI per trovare nuove idee.</p>
-            <div id="mindMapContainer" class="p-4 md:p-6 bg-white/70 rounded-2xl shadow-lg"></div>
-            <div class="text-center mt-8 space-y-4 md:space-y-0 md:space-x-4">
-                <button id="generateCalendarBtn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700">
-                    Genera Calendario Finale
-                </button>
-                 <button id="resetBtn" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600">
-                    Ricomincia
-                </button>
-            </div>
-        </div>
+  try {
+    // Riceviamo i dati dal frontend
+    const { contentItem, nomeStudio, meccanismoUnico, sitemapUrls } = JSON.parse(event.body);
 
-        <!-- FASE 3: PIANO DETTAGLIATO (TABELLA) -->
-        <div id="detailedPlan" class="hidden mt-12 plan-enter">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">3. Il Tuo Piano Editoriale</h2>
-            <div class="overflow-x-auto bg-white rounded-2xl shadow-lg">
-                <table class="min-w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Settimana</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Idea di Titolo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keyword</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Azione</th>
-                        </tr>
-                    </thead>
-                    <tbody id="planTableBody" class="bg-white divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    // COSTRUZIONE DIRETTA DEL PROMPT DI ALTA QUALITÀ
+    // Questo metodo è istantaneo e non rischia timeout, usando il tuo template come base.
+    const prompt = `
+Agisci come un copywriter SEO con 10 anni di esperienza nel settore edile italiano, specializzato nel creare contenuti che convertono per lo studio '${nomeStudio}'. L'approccio dello studio si basa su: '${meccanismoUnico}'. Il tuo tono di voce deve essere professionale, autorevole ma anche rassicurante e facile da capire per un pubblico di non addetti ai lavori. Chi scrive è il team dello studio.
 
-    <!-- Modale Messaggi Generici -->
-    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full text-center">
-            <h3 id="modalTitle" class="text-xl font-bold text-yellow-500 mb-4">Ooops!</h3>
-            <div id="modalMessage" class="text-gray-700 mb-6 space-y-2"></div>
-            <button id="closeModalBtn" class="bg-red-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-600">Ho capito</button>
-        </div>
-    </div>
+**Titolo (H1 OBBLIGATORIO):** "${contentItem.titolo}"
+**Keyword Principale:** "${contentItem.keyword}"
 
-    <!-- Modale Generatore Prompt -->
-    <div id="promptModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter">
-        <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[95vh] flex flex-col">
-            <div class="p-4 border-b flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-800">Genera Materiali AI</h3>
-                <button id="closePromptModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-grow">
-                <div class="space-y-6">
-                    <!-- Sezione Info Base -->
-                    <div class="p-4 bg-white rounded-lg border">
-                        <h4 class="font-semibold text-gray-800 mb-2">Informazioni Base (per tutti i prompt)</h4>
-                        <div class="space-y-2">
-                             <div>
-                                <label for="prompt-studio" class="block text-xs font-medium text-gray-600">Nome Studio / Professionista</label>
-                                <input type="text" id="prompt-studio" class="mt-1 w-full p-2 border rounded-md text-sm">
-                            </div>
-                            <div>
-                                <label for="prompt-meccanismo" class="block text-xs font-medium text-gray-600">Approccio / Meccanismo Unico</label>
-                                <input type="text" id="prompt-meccanismo" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Es: Specializzati in ristrutturazioni chiavi in mano...">
-                            </div>
-                            <div>
-                                <label for="prompt-sitemap" class="block text-xs font-medium text-gray-600">URL della Sitemap (o pagine principali)</label>
-                                <textarea id="prompt-sitemap" rows="3" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Incolla qui gli URL, uno per riga..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Sezioni Prompt Specifici -->
-                    <div id="prompt-sections-container" class="space-y-4"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+**Regole SEO Obbligatorie:**
+- La keyword principale deve apparire nel primo paragrafo (entro le prime 100 parole).
+- La keyword principale deve essere presente in almeno un sottotitolo <h2>.
+- La keyword principale deve essere ripetuta nel testo in modo naturale 2-3 volte.
+- Includi 2-3 keyword correlate pertinenti (es. sinonimi o termini correlati).
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // ... (resto del codice JS come prima, fino al planTableBody listener) ...
-        const wizardDiv = document.getElementById('wizard');
-        const generateMapBtn = document.getElementById('generateMapBtn');
-        const mindMapDiv = document.getElementById('mindMap');
-        const mindMapContainer = document.getElementById('mindMapContainer');
-        const generateCalendarBtn = document.getElementById('generateCalendarBtn');
-        const detailedPlanDiv = document.getElementById('detailedPlan');
-        const planTableBody = document.getElementById('planTableBody');
-        const resetBtn = document.getElementById('resetBtn');
-        const professioneInput = document.getElementById('professione');
-        const serviziInput = document.getElementById('servizi');
-        const messageModal = document.getElementById('messageModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-        const promptModal = document.getElementById('promptModal');
-        const promptSectionsContainer = document.getElementById('prompt-sections-container');
-        const closePromptModalBtn = document.getElementById('closePromptModalBtn');
+**Struttura dell'Articolo:**
+- Un'introduzione che catturi l'attenzione.
+- Un corpo del testo diviso in 3-4 sezioni principali, ognuna introdotta da un sottotitolo <h2>.
+- L'uso di elenchi puntati (bullet point) per migliorare la leggibilità, usando il trattino (-) per ogni punto.
+- Una conclusione che riassuma i punti chiave.
 
-        let mindMapData = {};
-        let userProfile = {};
-        let allContentForCalendar = [];
-        let currentContentItem = {};
-        
-        const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
-        const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
-        const friendlyErrorMessage = `<p>Ci state sfondando l'A.I.!!</p><p class="mt-2">Troppe persone stanno usando il generatore, causando ritardi.</p><p class="mt-4">Attendi un istante e riprova.</p><p class="mt-4 text-xs italic">P.S. Grazie perché ci stai usando!</p>`;
-        
-        function renderMindMap() { mindMapContainer.innerHTML = ''; const { landing, pillar, clusters } = mindMapData; let mapHtml = `<div class="flex flex-col items-center space-y-4">`; mapHtml += createNodeHtml('landing', 0, landing); mapHtml += `<div class="h-8 w-px bg-gray-400"></div>`; mapHtml += createNodeHtml('pillar', 0, pillar); if (clusters.length > 0) { mapHtml += `<div class="h-8 w-px bg-gray-400"></div><div class="flex flex-wrap justify-center gap-4" id="cluster-container">`; clusters.forEach((cluster, index) => mapHtml += createNodeHtml('clusters', index, cluster, true)); mapHtml += `</div>`; } mapHtml += `<div class="mt-6"><button data-action="expand-ai" class="text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 px-4 rounded-full font-semibold flex items-center gap-2">✨ Amplia con AI</button></div></div>`; mindMapContainer.innerHTML = mapHtml; }
-        function createNodeHtml(type, index, data, isCluster = false) { let bgColor = data.tipo === 'Suggerito da AI' ? 'bg-purple-50' : (isCluster ? 'bg-green-50' : (type === 'landing' ? 'bg-red-50' : (type === 'pillar' ? 'bg-blue-50' : 'bg-white'))); return `<div class="p-4 rounded-lg shadow-md ${bgColor} w-full md:w-auto md:max-w-md text-center"><div class="flex items-center justify-center"><p contenteditable="true" data-action="edit-title" data-type="${type}" data-index="${index}" class="font-bold text-gray-800 p-1">${data.titolo}</p>${type !== 'landing' ? `<button data-action="delete" data-type="${type}" data-index="${index}" class="ml-2 text-red-400 hover:text-red-600 text-xl font-bold">&times;</button>` : ''}</div><p class="text-xs text-gray-500 mt-1"><code>${data.keyword}</code></p></div>`; }
-        generateMapBtn.addEventListener('click', async () => { const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim(); const domanda_frequente = document.getElementById('domanda_frequente').value.trim(); if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; } generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true; try { const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`; const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) }); if (!optimizeResponse.ok) throw new Error('Errore ottimizzazione domanda.'); const optimizedQuestion = await optimizeResponse.json(); userProfile = { professione, servizi, citta }; const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0]; const s2 = servizi[1]; mindMapData = { landing: { titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', sinossi: `Pagina di vendita principale.` }, pillar: { titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', sinossi: `Articolo completo sul servizio principale.` }, clusters: [{ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', sinossi: `Risposta dettagliata alla domanda più comune.` }, { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', sinossi: `Analisi trasparente dei costi.` }, s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Approfondimento sul secondo servizio.` } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto', sinossi: `Guida aggiornata sui bonus.` },] }; wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden'); renderMindMap(); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { generateMapBtn.innerHTML = `Crea Mappa Mentale`; generateMapBtn.disabled = false; } });
-        mindMapContainer.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action, type, index } = button.dataset; if (action === 'delete') { if (type === 'pillar') { showModal('Attenzione!', 'Il Pillar non può essere eliminato.'); return; } mindMapData[type].splice(index, 1); renderMindMap(); } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const { professione, servizi, citta } = userProfile; const existingTitles = [mindMapData.landing.titolo, mindMapData.pillar.titolo, ...mindMapData.clusters.map(c => c.titolo)].join(', '); const prompt = `Sei un esperto di content strategy per il settore edile in Italia. Profilo: ${professione} a ${citta}, specializzato in ${servizi.join(', ')}. Contenuti già in piano: ${existingTitles}. Suggerisci 3 nuove idee per articoli cluster. Obbligo: ogni titolo deve includere la città di ${citta}. Per ogni idea, fornisci: "titolo", "keyword", "tipo", e "sinossi" di 20-30 parole. Rispondi solo con un array JSON valido.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); newClusters.forEach(cluster => { mindMapData.clusters.push({ ...cluster, tipo: 'Suggerito da AI' }); }); renderMindMap(); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); button.innerHTML = '✨ Amplia con AI'; button.disabled = false; } } });
-        mindMapContainer.addEventListener('focusout', (e) => { const p = e.target; if (p.dataset.action === 'edit-title') { const { type, index } = p.dataset; const newTitle = p.textContent.trim(); (type === 'clusters' ? mindMapData.clusters[index] : mindMapData[type]).titolo = newTitle; } });
-        generateCalendarBtn.addEventListener('click', () => { planTableBody.innerHTML = ''; allContentForCalendar = [mindMapData.landing, mindMapData.pillar, ...mindMapData.clusters]; allContentForCalendar.forEach((item, index) => { const row = document.createElement('tr'); row.dataset.index = index; row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">🤖 Genera Prompt AI</button></td>`; planTableBody.appendChild(row); }); detailedPlanDiv.classList.remove('hidden'); detailedPlanDiv.scrollIntoView(); });
-        
-        planTableBody.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button || button.dataset.action !== 'write-ai') return;
-            
-            const row = button.closest('tr');
-            const index = parseInt(row.dataset.index, 10);
-            currentContentItem = allContentForCalendar[index];
+**Strategia di Linking (Interno ed Esterno):**
+- Analizza la sitemap fornita e inserisci 2-3 link interni in modo naturale e contestuale. Per farlo, identifica le parole chiave nel testo (anchor text) più pertinenti e trasformale in un link. **Esempio: 'Una delle pratiche più comuni è la CILA (Comunicazione Inizio Lavori Asseverata), ideale per...'. In questo caso, trasforma la parola 'CILA' in un link che punta alla pagina appropriata.** Ecco le pagine disponibili dalla sitemap:
+${sitemapUrls}
+- Inserisci 1-2 link esterni a fonti autorevoli e non concorrenti (es. Wikipedia, sito del Comune, normative ufficiali come il Testo Unico Edilizia) per aumentare l'affidabilità (E-A-T).
 
-            document.getElementById('prompt-studio').value = capitalizeFirstLetter(userProfile.professione);
-            
-            promptSectionsContainer.innerHTML = `
-                <!-- Sezione Prompt Articolo -->
-                <div class="p-4 bg-white rounded-lg border">
-                    <h4 class="font-semibold text-gray-800 mb-2">1. Prompt per l'Articolo</h4>
-                    <textarea id="prompt-article" rows="12" class="w-full p-2 border rounded-md bg-gray-100 font-mono text-xs" readonly placeholder="Clicca 'Genera' per creare il prompt..."></textarea>
-                    <div class="mt-2" id="article-prompt-buttons">
-                        <button data-action="generate-article-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera Prompt Articolo</button>
-                    </div>
-                </div>
-                <!-- Sezione Meta Dati -->
-                <div class="p-4 bg-white rounded-lg border">
-                    <h4 class="font-semibold text-gray-800 mb-2">2. Meta Dati SEO</h4>
-                    <div id="seo-meta-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div>
-                    <div class="mt-2" id="seo-meta-buttons">
-                        <button data-action="generate-seo-meta" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera Titolo SEO & Meta Description</button>
-                    </div>
-                </div>
-                <!-- Sezione Prompt Immagine -->
-                <div class="p-4 bg-white rounded-lg border">
-                    <h4 class="font-semibold text-gray-800 mb-2">3. Prompt per Immagine (Midjourney)</h4>
-                    <div id="image-prompt-output" class="p-2 border rounded-md bg-gray-100 text-xs min-h-[6rem] whitespace-pre-wrap"></div>
-                    <div class="mt-2" id="image-prompt-buttons">
-                         <button data-action="generate-image-prompt" class="w-full bg-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-indigo-600">Genera 3 Prompt Immagine</button>
-                    </div>
-                </div>
-            `;
-            promptModal.classList.remove('hidden');
-        });
+**Tono e Vendita Elegante:**
+Il contenuto deve essere informativo ed esaustivo. NON consigliare mai al lettore di 'cercare su Google', 'verificare online' o 'controllare le recensioni'. L'obiettivo è posizionare lo studio '${nomeStudio}' come la soluzione ideale e l'unica fonte di cui fidarsi. La conclusione deve riassumere i punti chiave dell'articolo e all'interno dell'articolo si deve accennare alla specializzazione dello studio: '${meccanismoUnico}'.
+`;
 
-        // Funzione helper per creare e gestire il pulsante di copia
-        function addCopyButton(targetElement, parentElement) {
-            const copyBtn = document.createElement('button');
-            copyBtn.textContent = 'Copia';
-            copyBtn.className = 'mt-2 w-full bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-green-700';
-            
-            copyBtn.onclick = () => {
-                const content = targetElement.value || targetElement.innerText;
-                navigator.clipboard.writeText(content).then(() => {
-                    copyBtn.textContent = 'Copiato!';
-                    setTimeout(() => { copyBtn.textContent = 'Copia'; }, 2000);
-                });
-            };
-            parentElement.appendChild(copyBtn);
-        }
+    // Restituiamo il prompt costruito al frontend
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ prompt }),
+    };
 
-        promptSectionsContainer.addEventListener('click', async (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            const action = button.dataset.action;
-
-            const nomeStudio = document.getElementById('prompt-studio').value.trim();
-            const meccanismoUnico = document.getElementById('prompt-meccanismo').value.trim();
-            const sitemapUrls = document.getElementById('prompt-sitemap').value.trim();
-            if(!nomeStudio || !meccanismoUnico) {
-                showModal('Attenzione!', 'Per favore, compila "Nome Studio" e "Approccio Unico" prima di generare i prompt.');
-                return;
-            }
-
-            button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
-
-            try {
-                let response;
-                if (action === 'generate-article-prompt') {
-                    response = await fetch(`/.netlify/functions/generate-article-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, nomeStudio, meccanismoUnico, sitemapUrls }) });
-                    if (!response.ok) throw new Error();
-                    const { prompt } = await response.json();
-                    const targetTextarea = document.getElementById('prompt-article');
-                    targetTextarea.value = prompt;
-                    button.style.display = 'none';
-                    addCopyButton(targetTextarea, document.getElementById('article-prompt-buttons'));
-                } else if (action === 'generate-seo-meta') {
-                    // MODIFICATO: Ora inviamo anche userProfile per dare più contesto
-                    response = await fetch(`/.netlify/functions/generate-seo-meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, userProfile: userProfile }) });
-                    if (!response.ok) throw new Error();
-                    const { seoTitle, metaDescription } = await response.json();
-                    const targetDiv = document.getElementById('seo-meta-output');
-                    targetDiv.innerHTML = `<p><strong>Titolo SEO:</strong> ${seoTitle}</p><p class="mt-2"><strong>Meta Description:</strong> ${metaDescription}</p>`;
-                    button.style.display = 'none';
-                    addCopyButton(targetDiv, document.getElementById('seo-meta-buttons'));
-                } else if (action === 'generate-image-prompt') {
-                    response = await fetch(`/.netlify/functions/generate-image-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem }) });
-                    if (!response.ok) throw new Error();
-                    const { prompts } = await response.json();
-                    const targetDiv = document.getElementById('image-prompt-output');
-                    targetDiv.innerHTML = `<ul class="list-disc list-inside text-left">${prompts.map(p => `<li>${p}</li>`).join('')}</ul>`;
-                    button.style.display = 'none';
-                    addCopyButton(targetDiv, document.getElementById('image-prompt-buttons'));
-                }
-            } catch (error) {
-                showModal('Ooops!', friendlyErrorMessage, false);
-                button.innerHTML = button.textContent; // Ripristina testo originale
-                button.disabled = false;
-            }
-        });
-        
-        resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
-        closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
-        closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
-    });
-    </script>
-</body>
-</html>
+  } catch (error) {
+    console.error("Errore nella funzione:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Errore interno del server.' }),
+    };
+  }
+};
