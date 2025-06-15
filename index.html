@@ -225,9 +225,9 @@
         generateMapBtn.addEventListener('click', async () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim(); const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
+            
             generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
             
-            // CORREZIONE: Crea la board immediatamente con un fallback
             userProfile = { professione, servizi, citta };
             const cittaC = capitalizeFirstLetter(citta);
             const s1 = servizi[0];
@@ -249,30 +249,34 @@
             wizardDiv.classList.add('hidden');
             mindMapDiv.classList.remove('hidden');
             detailedPlanDiv.classList.add('hidden');
-            renderBoard(); // Disegna subito la board
-            generateMapBtn.innerHTML = `Crea Lavagna Strategica`;
-            generateMapBtn.disabled = false;
             
-            // Ora, prova a ottimizzare in background
-            try {
-                const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
-                const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
-                if (optimizeResponse.ok) {
-                    const optimizedQuestion = await optimizeResponse.json();
-                    // Trova e aggiorna la card della domanda frequente
-                    const questionCard = boardData.support.find(card => card.keyword === domanda_frequente.toLowerCase());
-                    if (questionCard) {
-                        questionCard.titolo = optimizedQuestion.titolo;
-                        questionCard.keyword = optimizedQuestion.keyword;
-                        renderBoard(); // Ridisegna la board con i dati aggiornati
-                    }
-                } else {
-                    throw new Error('API call to optimize-question failed');
+            // CORREZIONE: Usa setTimeout per garantire che il DOM sia pronto
+            setTimeout(() => {
+                renderBoard(); 
+                generateMapBtn.innerHTML = `Crea Lavagna Strategica`;
+                generateMapBtn.disabled = false;
+
+                // Ora, prova a ottimizzare in background
+                try {
+                    const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
+                    fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) })
+                        .then(response => {
+                            if (response.ok) return response.json();
+                            throw new Error('API call to optimize-question failed');
+                        })
+                        .then(optimizedQuestion => {
+                            const questionCard = boardData.support.find(card => card.keyword === domanda_frequente.toLowerCase());
+                            if (questionCard) {
+                                questionCard.titolo = optimizedQuestion.titolo;
+                                questionCard.keyword = optimizedQuestion.keyword;
+                                renderBoard();
+                            }
+                        })
+                        .catch(error => console.warn("Chiamata AI per ottimizzazione domanda fallita. L'utente userà il fallback.", error));
+                } catch (error) {
+                    console.warn("Errore nell'avviare la chiamata di ottimizzazione.", error);
                 }
-            } catch (error) {
-                console.warn("Chiamata AI per ottimizzazione domanda fallita. L'utente userà il fallback.", error);
-                // Non mostriamo l'errore all'utente, la board è già visibile
-            }
+            }, 0);
         });
 
         mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = Object.values(boardData).flat(); const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); addCardsToBoard([{...newCluster, tipo: 'Suggerito da AI'}]); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
