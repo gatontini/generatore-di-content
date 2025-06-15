@@ -120,7 +120,6 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- ELEMENTI DOM ---
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
@@ -137,16 +136,14 @@
         const manualAddModal = document.getElementById('manualAddModal'); const closeManualAddModalBtn = document.getElementById('closeManualAddModalBtn'); const enrichKeywordsBtn = document.getElementById('enrichKeywordsBtn');
         const promptModal = document.getElementById('promptModal'); const promptSectionsContainer = document.getElementById('prompt-sections-container'); const closePromptModalBtn = document.getElementById('closePromptModalBtn');
 
-        // --- STATO ---
         let userProfile = {};
         let boardData = {};
+        let currentContentItem = {};
         
-        // --- FUNZIONI HELPER ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
-        // --- LOGICA LAVAGNA A COLONNE ---
         function renderBoard() {
             board.innerHTML = '';
             const columnStyles = {
@@ -170,7 +167,6 @@
                     });
                 }
                 
-                // CORREZIONE BUG: Inizializza SortableJS qui, dopo che gli elementi esistono.
                 new Sortable(cardListEl, {
                     group: 'shared',
                     animation: 150,
@@ -189,7 +185,6 @@
                         
                         if (movedCard) {
                              boardData[newColumnId].splice(evt.newDraggableIndex, 0, movedCard);
-                             // Non ri-renderizzare tutto, lascia che SortableJS gestisca il DOM.
                         }
                     }
                 });
@@ -228,7 +223,6 @@
             renderBoard();
         }
 
-        // --- GESTIONE DATI E CHIAMATE AI ---
         generateMapBtn.addEventListener('click', () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim();
             if (!professione || !citta || servizi.length === 0) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
@@ -277,10 +271,12 @@
             const row = button.closest('tr');
             const cardId = row.dataset.id;
             
-            let currentContentItem;
             for (const column in boardData) {
-                currentContentItem = boardData[column].find(c => c.id == cardId);
-                if (currentContentItem) break;
+                const found = boardData[column].find(c => c.id == cardId);
+                if (found) {
+                    currentContentItem = found;
+                    break;
+                }
             }
 
             if (!currentContentItem) return;
@@ -306,6 +302,76 @@
             promptModal.classList.remove('hidden');
         });
         
+        // CORREZIONE BUG: Aggiunto un listener delegato al contenitore
+        promptSectionsContainer.addEventListener('click', async (e) => {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+            
+            const action = button.dataset.action;
+            const nomeStudio = document.getElementById('prompt-studio').value.trim();
+            const meccanismoUnico = document.getElementById('prompt-meccanismo').value.trim();
+            const sitemapUrls = document.getElementById('prompt-sitemap').value.trim();
+
+            if (action !== 'generate-article-prompt' && (!nomeStudio || !meccanismoUnico)) {
+                showModal('Attenzione!', 'Compila "Nome Studio" e "Approccio Unico".');
+                return;
+            }
+
+            button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
+
+            try {
+                let response, data, targetElement, parentElement;
+                switch(action) {
+                    case 'generate-article-prompt':
+                        response = await fetch(`/.netlify/functions/generate-article-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, nomeStudio, meccanismoUnico, sitemapUrls }) });
+                        if (!response.ok) throw new Error();
+                        data = await response.json();
+                        targetElement = document.getElementById('prompt-article');
+                        targetElement.value = data.prompt;
+                        parentElement = document.getElementById('article-prompt-buttons-container');
+                        addCopyButton(targetElement, parentElement);
+                        break;
+                    case 'generate-seo-meta':
+                        response = await fetch(`/.netlify/functions/generate-seo-meta`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem, userProfile: userProfile }) });
+                        if (!response.ok) throw new Error();
+                        data = await response.json();
+                        targetElement = document.getElementById('seo-meta-output');
+                        targetElement.innerHTML = `<p><strong>Titolo SEO:</strong> ${data.seoTitle}</p><p class="mt-2"><strong>Meta Description:</strong> ${data.metaDescription}</p>`;
+                        parentElement = document.getElementById('seo-meta-buttons-container');
+                        addCopyButton(targetElement, parentElement);
+                        break;
+                    case 'generate-image-prompt':
+                        response = await fetch(`/.netlify/functions/generate-image-prompt`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentItem: currentContentItem }) });
+                        if (!response.ok) throw new Error();
+                        data = await response.json();
+                        targetElement = document.getElementById('image-prompt-output');
+                        targetElement.innerHTML = `<ul class="list-disc list-inside text-left">${data.prompts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+                        parentElement = document.getElementById('image-prompt-buttons-container');
+                        addCopyButton(targetElement, parentElement);
+                        break;
+                }
+            } catch (error) {
+                showModal('Ooops!', friendlyErrorMessage, false);
+                button.innerHTML = button.textContent;
+                button.disabled = false;
+            }
+        });
+
+        function addCopyButton(targetElement, parentElement) {
+            parentElement.innerHTML = '';
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Copia Prompt';
+            copyBtn.className = 'w-full bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-green-700';
+            copyBtn.onclick = () => {
+                const content = targetElement.value || targetElement.innerText;
+                navigator.clipboard.writeText(content).then(() => {
+                    copyBtn.textContent = 'Copiato!';
+                    setTimeout(() => { copyBtn.textContent = 'Copia Prompt'; }, 2000);
+                });
+            };
+            parentElement.appendChild(copyBtn);
+        }
+
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
         closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
