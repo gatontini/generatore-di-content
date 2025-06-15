@@ -14,17 +14,18 @@
         .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
         .plan-enter, .mindmap-enter, .modal-enter { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        [contenteditable]:focus { outline: 2px solid #3b82f6; background-color: #eff6ff; }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         #strategic-map-container { padding: 1rem; background-color: #e2e8f0; border-radius: 0.75rem; width: 100%; overflow-x: auto; }
         .map-layout { display: flex; flex-direction: column; align-items: center; gap: 2rem; }
-        .pillars-grid { display: flex; gap: 1.5rem; width: 100%; align-items: start; padding-bottom: 1rem; }
+        .pillars-grid { display: flex; gap: 1.5rem; width: max-content; min-width: 100%; align-items: start; padding-bottom: 1rem; }
         .pillar-column, .new-ideas-column { width: 320px; flex-shrink: 0; background-color: #f8fafc; border-radius: 0.75rem; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .support-card-list { min-height: 80px; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; border-top: 2px dashed #d1d5db; padding-top: 1rem; }
-        .content-card { padding: 1rem; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); cursor: grab; border-left-width: 4px; }
+        .content-card { padding: 0.75rem; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); cursor: grab; border-left-width: 4px; position: relative; }
         .content-card:active { cursor: grabbing; }
+        .delete-card-btn { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background-color: #fee2e2; color: #b91c1c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; opacity: 0; transition: opacity 0.2s; }
+        .content-card:hover .delete-card-btn { opacity: 1; }
         .card-landing { border-color: #4ade80; background-color: #f0fdf4; }
         .card-pillar { border-color: #fb923c; background-color: #fff7ed; }
         .card-support { border-color: #9ca3af; background-color: #f1f5f9; }
@@ -93,6 +94,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- DOM ELEMENTS ---
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
@@ -104,25 +106,58 @@
         const resetBtn = document.getElementById('resetBtn');
         const professioneInput = document.getElementById('professione');
         const serviziInput = document.getElementById('servizi');
+        // Modals...
         const messageModal = document.getElementById('messageModal'); const modalTitle = document.getElementById('modalTitle'); const modalMessage = document.getElementById('modalMessage'); const closeModalBtn = document.getElementById('closeModalBtn');
         const manualAddModal = document.getElementById('manualAddModal'); const closeManualAddModalBtn = document.getElementById('closeManualAddModalBtn'); const enrichKeywordsBtn = document.getElementById('enrichKeywordsBtn');
         const promptModal = document.getElementById('promptModal'); const promptSectionsContainer = document.getElementById('prompt-sections-container'); const closePromptModalBtn = document.getElementById('closePromptModalBtn');
 
+        // --- STATE ---
         let userProfile = {};
         let mapData = {};
+        let cardIdCounter = 0;
         
+        // --- HELPERS ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
-        let cardIdCounter = 0;
+        // --- CORE LOGIC ---
         function createCard(cardData, cardClass) {
             const cardEl = document.createElement('div');
             cardData.id = cardData.id || `card-${cardIdCounter++}`;
             cardEl.dataset.id = cardData.id;
             cardEl.className = `content-card ${cardClass}`;
-            cardEl.innerHTML = `<p class="font-semibold text-gray-800">${cardData.titolo}</p><p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>`;
+            cardEl.innerHTML = `
+                <p class="font-semibold text-gray-800">${cardData.titolo}</p>
+                <p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>
+                <button class="delete-card-btn">&times;</button>`;
             return cardEl;
+        }
+
+        function findCardData(cardId) {
+            if (mapData.landing && mapData.landing.id === cardId) return mapData.landing;
+            for (const pillar of mapData.pillars) {
+                if (pillar.id === cardId) return pillar;
+                const cluster = pillar.clusters.find(c => c.id === cardId);
+                if (cluster) return cluster;
+            }
+            return mapData.newIdeas.find(i => i.id === cardId);
+        }
+
+        function removeCardFromData(cardId) {
+            for (const pillar of mapData.pillars) {
+                const index = pillar.clusters.findIndex(c => c.id === cardId);
+                if (index > -1) {
+                    pillar.clusters.splice(index, 1);
+                    return true;
+                }
+            }
+            const newIdeaIndex = mapData.newIdeas.findIndex(i => i.id === cardId);
+            if (newIdeaIndex > -1) {
+                mapData.newIdeas.splice(newIdeaIndex, 1);
+                return true;
+            }
+            return false;
         }
         
         function renderStrategicMap() {
@@ -140,6 +175,7 @@
             
             const pillarsGrid = document.createElement('div');
             pillarsGrid.className = 'pillars-grid';
+            new Sortable(pillarsGrid, { group: 'pillars', animation: 150 });
             
             mapData.pillars.forEach((pillar, index) => {
                 const pillarColumn = document.createElement('div');
@@ -177,39 +213,36 @@
         }
 
         function updateDataFromDOM() {
-            const newMapData = {
-                landing: mapData.landing,
-                pillars: [],
-                newIdeas: []
-            };
-
-            mapData.pillars.forEach((pillar, index) => {
-                const newPillar = { ...pillar, clusters: [] };
-                const supportList = document.querySelector(`[data-pillar-index="${index}"]`);
-                if (supportList) {
-                    Array.from(supportList.children).forEach(cardEl => {
-                        const originalCard = findCardById(cardEl.dataset.id);
-                        if (originalCard) newPillar.clusters.push(originalCard);
-                    });
-                }
-                newMapData.pillars.push(newPillar);
+            const newPillars = [];
+            const pillarColumns = strategicMapContainer.querySelectorAll('.pillar-column');
+            pillarColumns.forEach(col => {
+                const pillarCardEl = col.querySelector('.card-pillar');
+                if(!pillarCardEl) return;
+                
+                const pillarId = pillarCardEl.dataset.id;
+                const originalPillar = findCardById(pillarId);
+                const newPillar = { ...originalPillar, clusters: [] };
+                
+                const supportList = col.querySelector('.support-card-list');
+                Array.from(supportList.children).forEach(cardEl => {
+                    const originalCard = findCardById(cardEl.dataset.id);
+                    if (originalCard) newPillar.clusters.push(originalCard);
+                });
+                newPillars.push(newPillar);
             });
+            
+            mapData.pillars = newPillars;
 
+            mapData.newIdeas = [];
             const newIdeasList = document.getElementById('new-ideas-list');
             if (newIdeasList) {
                 Array.from(newIdeasList.children).forEach(cardEl => {
                     const originalCard = findCardById(cardEl.dataset.id);
-                    if (originalCard) newMapData.newIdeas.push(originalCard);
+                    if (originalCard) mapData.newIdeas.push(originalCard);
                 });
             }
-            mapData = newMapData;
         }
-
-        function findCardById(cardId) {
-            const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas];
-            return allCards.find(c => c && c.id == cardId);
-        }
-
+        
         generateMapBtn.addEventListener('click', () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim();
             if (!professione || !citta || servizi.length === 0) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
@@ -233,7 +266,52 @@
             renderStrategicMap(); 
         });
         
-        mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if(action === 'add-pillar') { const newPillarName = prompt("Inserisci il nome del nuovo Pillar (es: 'Pratiche Catastali'):"); if (newPillarName) { mapData.pillars.push({ titolo: `Guida a ${capitalizeFirstLetter(newPillarName)} a ${userProfile.citta}`, keyword: `guida ${newPillarName.toLowerCase()} ${userProfile.citta.toLowerCase()}`, clusters: []}); renderStrategicMap(); } } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas]; const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster che sia strettamente pertinente ai servizi offerti. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); mapData.newIdeas.push(newCluster); renderStrategicMap(); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
+        mindMapControls.addEventListener('click', async (e) => {
+            const button = e.target.closest('button');
+            if (!button || !button.dataset.action) return;
+            const action = button.dataset.action;
+            if (action === 'add-manual') {
+                manualAddModal.classList.remove('hidden');
+                document.getElementById('manual-keywords').value = '';
+            } else if (action === 'add-pillar') {
+                const newPillarName = prompt("Inserisci il nome del nuovo Pillar (es: 'Pratiche Catastali'):");
+                if (newPillarName && newPillarName.trim() !== '') {
+                    mapData.pillars.push({
+                        titolo: `Guida a ${capitalizeFirstLetter(newPillarName)} a ${userProfile.citta}`,
+                        keyword: `guida ${newPillarName.toLowerCase()} ${userProfile.citta.toLowerCase()}`,
+                        clusters: []
+                    });
+                    renderStrategicMap();
+                }
+            } else if (action === 'expand-ai') {
+                button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
+                updateDataFromDOM();
+                const allCards = [mapData.landing, ...mapData.pillars, ...mapData.pillars.flatMap(p => p.clusters), ...mapData.newIdeas];
+                const existingTitles = allCards.map(c => c.titolo).join(', ');
+                const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster che sia strettamente pertinente ai servizi offerti. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`;
+                try {
+                    const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+                    if (!response.ok) throw new Error();
+                    const newCluster = await response.json();
+                    mapData.newIdeas.push(newCluster);
+                    renderStrategicMap();
+                } catch (error) { showModal('Ooops!', friendlyErrorMessage, false);
+                } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; }
+            }
+        });
+        
+        strategicMapContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-card-btn')) {
+                const cardEl = e.target.closest('.content-card');
+                if (cardEl) {
+                    const cardId = cardEl.dataset.id;
+                    if(removeCardFromData(cardId)){
+                       renderStrategicMap();
+                    }
+                }
+            }
+        });
+
         enrichKeywordsBtn.addEventListener('click', async () => { const keywordsText = document.getElementById('manual-keywords').value.trim(); if (!keywordsText) return; const keywords = keywordsText.split('\n').filter(k => k.trim() !== ''); enrichKeywordsBtn.innerHTML = `<div class="loader"></div>`; enrichKeywordsBtn.disabled = true; try { const response = await fetch(`/.netlify/functions/enrich-keywords`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords, userProfile }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); mapData.newIdeas.push(...newClusters); renderStrategicMap(); manualAddModal.classList.add('hidden'); } catch(error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { enrichKeywordsBtn.innerHTML = `Arricchisci con AI`; enrichKeywordsBtn.disabled = false; } });
         
         generateCalendarBtn.addEventListener('click', () => {
