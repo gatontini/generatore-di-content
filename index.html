@@ -171,7 +171,6 @@
                         const newColumnId = evt.to.id.replace('column-', '');
                         const oldColumnId = evt.from.id.replace('column-', '');
 
-                        // Trova e sposta il dato nell'oggetto boardData
                         let movedCard;
                         const oldColumnCards = boardData[oldColumnId];
                         const cardIndex = oldColumnCards.findIndex(card => card.id == cardId);
@@ -182,7 +181,6 @@
                         if (movedCard) {
                              boardData[newColumnId].splice(evt.newDraggableIndex, 0, movedCard);
                         }
-                         // Rirenderizza per aggiornare i colori
                         renderBoard();
                     }
                 });
@@ -196,9 +194,21 @@
             cardEl.dataset.id = cardData.id;
             cardEl.className = `content-card ${color}`;
             cardEl.innerHTML = `
-                <p class="font-semibold text-gray-800">${cardData.titolo}</p>
-                <p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>
-            `;
+                <p contenteditable="true" data-action="edit-title" class="font-semibold text-gray-800">${cardData.titolo}</p>
+                <p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>`;
+            
+            // CORREZIONE BUG: Aggiorna i dati quando il titolo viene modificato
+            cardEl.querySelector('p[contenteditable]').addEventListener('blur', (e) => {
+                 const newTitle = e.target.textContent.trim();
+                 const cardId = cardEl.dataset.id;
+                 for (const column in boardData) {
+                    const cardToUpdate = boardData[column].find(c => c.id == cardId);
+                    if (cardToUpdate) {
+                        cardToUpdate.titolo = newTitle;
+                        break;
+                    }
+                 }
+            });
             return cardEl;
         }
 
@@ -215,24 +225,32 @@
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim(); const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
             generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
+            
+            // CORREZIONE: Isoliamo la chiamata API e usiamo un fallback in caso di errore
+            let optimizedQuestion;
             try {
                 const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
                 const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
-                if (!optimizeResponse.ok) throw new Error('Errore ottimizzazione domanda.');
-                const optimizedQuestion = await optimizeResponse.json();
+                if (!optimizeResponse.ok) {
+                    throw new Error('API call to optimize-question failed');
+                }
+                optimizedQuestion = await optimizeResponse.json();
+            } catch (error) {
+                console.warn("Chiamata AI per ottimizzazione domanda fallita, uso un fallback.", error);
+                optimizedQuestion = { titolo: capitalizeFirstLetter(domanda_frequente), keyword: domanda_frequente.toLowerCase() };
+            }
 
-                userProfile = { professione, servizi, citta };
-                const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0];
-                boardData = {
-                    landing: [{ titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale' }],
-                    pillar: [{ titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar' }],
-                    support: [{ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente' }, { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi' }],
-                    new: []
-                };
-                wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
-                renderBoard();
-            } catch (error) { showModal('Ooops!', friendlyErrorMessage, false);
-            } finally { generateMapBtn.innerHTML = `Crea Lavagna Strategica`; generateMapBtn.disabled = false; }
+            userProfile = { professione, servizi, citta };
+            const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0];
+            boardData = {
+                landing: [{ titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale' }],
+                pillar: [{ titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar' }],
+                support: [{ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente' }, { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi' }],
+                new: []
+            };
+            wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
+            renderBoard();
+            generateMapBtn.innerHTML = `Crea Lavagna Strategica`; generateMapBtn.disabled = false;
         });
 
         mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = Object.values(boardData).flat(); const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); addCardsToBoard([{...newCluster, tipo: 'Suggerito da AI'}]); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
@@ -240,12 +258,7 @@
         
         generateCalendarBtn.addEventListener('click', () => {
             planTableBody.innerHTML = '';
-            const allCards = [
-                ...boardData.landing,
-                ...boardData.pillar,
-                ...boardData.support,
-                ...boardData.new
-            ];
+            const allCards = [...(boardData.landing || []), ...(boardData.pillar || []), ...(boardData.support || []), ...(boardData.new || [])];
             allCards.forEach((item, index) => {
                 const row = document.createElement('tr');
                 row.dataset.id = item.id;
