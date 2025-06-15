@@ -1,7 +1,6 @@
 // Questo è il nuovo codice per: /netlify/functions/generate-content-plan.js
 
 exports.handler = async function (event, context) {
-  // Controlla che la richiesta sia un POST
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -11,10 +10,22 @@ exports.handler = async function (event, context) {
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      throw new Error("La chiave API di OpenAI non è stata impostata nelle variabili d'ambiente.");
+      throw new Error("La chiave API di OpenAI non è stata impostata.");
     }
+    
+    // MODIFICATO: Il prompt ora contiene la tua strategia esperta.
+    const expertPrompt = `Sei un esperto SEO e Content Strategist per il settore edile in Italia. Il tuo compito è espandere un piano editoriale esistente seguendo una logica a "Topic Cluster".
 
-    // Usa la funzione fetch integrata
+${prompt}
+
+Istruzioni Obbligatorie:
+1.  **Analisi dei Servizi:** Per ogni servizio principale fornito nel profilo, genera 2-3 varianti di keyword (una transazionale come "costo [servizio]" e una informativa come "guida a [servizio]").
+2.  **Espansione Tecnica:** Se nei servizi o nei titoli esistenti trovi termini come "pratiche edilizie", "pratiche catastali" o simili, DEVI generare contenuti specifici per le pratiche più comuni in Italia (es: CILA, SCIA, Permesso di Costruire, Cambio Destinazione d'Uso), sempre localizzati con la città.
+3.  **Controllo Duplicati:** NON generare idee che siano semplici variazioni di titoli già presenti nel piano.
+4.  **Pertinenza:** Ogni suggerimento deve essere una keyword che un potenziale cliente cercherebbe realmente su Google. Evita neologismi tecnici o argomenti fuori target (come la sostenibilità, a meno che non sia un servizio esplicito).
+5.  **Formato:** Fornisci il risultato come un array JSON valido, con gli oggetti contenenti "titolo", "keyword", "tipo", e "sinossi".
+`;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -22,9 +33,9 @@ exports.handler = async function (event, context) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        model: 'gpt-4o', // Usiamo il modello più potente per eseguire questa strategia complessa
+        messages: [{ role: 'user', content: expertPrompt }],
+        temperature: 0.5, // Meno creativo, più esecutivo
         response_format: { type: "json_object" }, 
       }),
     });
@@ -39,23 +50,17 @@ exports.handler = async function (event, context) {
     }
 
     const data = await response.json();
-    const rawContent = data.choices[0].message.content;
-    console.log("RISPOSTA DA OPENAI (RAW):", rawContent);
+    let rawContent = data.choices[0].message.content;
+    
+    // Pulizia della risposta
+    if (rawContent.startsWith("```json")) {
+        rawContent = rawContent.substring(7, rawContent.length - 3).trim();
+    } else if (rawContent.startsWith("```")) {
+        rawContent = rawContent.substring(3, rawContent.length - 3).trim();
+    }
 
     const contentPlan = JSON.parse(rawContent);
-
-    // Rendiamo più robusta l'estrazione dell'array
-    let ideasArray = [];
-    if (Array.isArray(contentPlan)) {
-        ideasArray = contentPlan;
-    } else if (typeof contentPlan === 'object' && contentPlan !== null) {
-        const keyWithArray = Object.keys(contentPlan).find(k => Array.isArray(contentPlan[k]));
-        if (keyWithArray) {
-            ideasArray = contentPlan[keyWithArray];
-        } else if (contentPlan.titolo) {
-            ideasArray = [contentPlan];
-        }
-    }
+    const ideasArray = Array.isArray(contentPlan) ? contentPlan : (contentPlan.ideas || contentPlan.clusters || []);
     
     return {
       statusCode: 200,
