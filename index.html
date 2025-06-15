@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generatore di Calendario SEO con AI Strategica</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Librerie per la mappa dinamica -->
-    <script src="https://cdn.jsdelivr.net/npm/plain-draggable@2.5.14/plain-draggable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leader-line-new@1.1.9/leader-line.min.js"></script>
+    <!-- Libreria per Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,80 +19,37 @@
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Stili Mappa Dinamica */
-        #mindMapCanvas {
-            position: relative;
-            width: 100%;
-            height: 70vh;
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            overflow: hidden;
+        /* Stili Lavagna a Colonne */
+        .board {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            overflow-x: auto;
+            background-color: #e2e8f0;
+            border-radius: 0.75rem;
+            min-height: 70vh;
+        }
+        .board-column {
+            width: 300px;
+            flex-shrink: 0;
+            background-color: #f1f5f9;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+        }
+        .card-list {
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .content-card {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
             cursor: grab;
         }
-        #mindMapCanvas.panning {
+        .content-card:active {
             cursor: grabbing;
-        }
-        #mindMapContainer {
-            position: absolute;
-            transform-origin: 0 0;
-        }
-        .mindmap-node {
-            position: absolute;
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            cursor: move;
-            width: 220px;
-            border: 2px solid transparent;
-            transition: border-color 0.2s;
-            user-select: none;
-        }
-        .mindmap-node.selected {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-            z-index: 10;
-        }
-        .node-connector {
-            position: absolute;
-            top: 50%;
-            right: -6px;
-            width: 12px;
-            height: 12px;
-            background-color: #9ca3af;
-            border-radius: 50%;
-            transform: translateY(-50%);
-            cursor: crosshair;
-        }
-        .color-palette {
-            position: absolute;
-            bottom: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: none;
-            gap: 0.5rem;
-            padding: 0.5rem;
-            background: white;
-            border-radius: 99px;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            z-index: 20;
-        }
-        .mindmap-node.selected .color-palette {
-            display: flex;
-        }
-        .color-dot {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid white;
-        }
-        .leader-line {
-            transition: all 0.1s;
-        }
-        .leader-line:hover {
-            outline: 2px dashed red;
-            cursor: pointer;
         }
     </style>
 </head>
@@ -107,7 +63,7 @@
         
         <div id="intro" class="bg-white/60 backdrop-blur-sm p-6 rounded-2xl shadow-lg mb-10 text-center">
             <h2 class="text-xl font-bold text-gray-700 mb-2">Dall'Idea al Prompt Perfetto.</h2>
-            <p class="text-gray-600">Questo strumento ti aiuta a pianificare i contenuti. Parti da una base solida, espandi con le tue idee o chiedi un suggerimento all'AI, e infine genera prompt professionali per creare i tuoi articoli.</p>
+            <p class="text-gray-600">Questo strumento ti aiuta a pianificare i contenuti. Parti da una base solida, organizza le idee nella lavagna strategica, e infine genera prompt professionali per i tuoi articoli.</p>
         </div>
 
         <!-- FASE 1: WIZARD / INPUT (Invariato) -->
@@ -119,17 +75,17 @@
                 <div> <label for="servizi" class="block text-sm font-medium text-gray-600 mb-2">Servizi principali</label> <input type="text" id="servizi" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Progettazione antisismica, Collaudo statico..."> <p class="text-xs text-gray-500 mt-1">Elenca i tuoi servizi principali, separati da una virgola.</p> </div>
                 <div> <label for="domanda_frequente" class="block text-sm font-medium text-gray-600 mb-2">Domanda frequente dei clienti</label> <input type="text" id="domanda_frequente" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Es: Quanto costa un progetto strutturale?"> </div>
             </div>
-            <div class="mt-8 text-center"> <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center mx-auto"> Crea Mappa Mentale </button> </div>
+            <div class="mt-8 text-center"> <button id="generateMapBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 flex items-center justify-center mx-auto"> Crea Lavagna Strategica </button> </div>
         </div>
         
-        <!-- FASE 2: MAPPA MENTALE DINAMICA -->
+        <!-- FASE 2: LAVAGNA STRATEGICA -->
         <div id="mindMap" class="hidden mt-12 mindmap-enter">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-2">2. Costruisci la tua Mappa Strategica</h2>
-            <p class="text-gray-600 mb-6 text-center">Trascina i nodi, crea collegamenti, cambia colori e usa l'AI per espandere il piano. Tieni premuto SPAZIO per navigare la mappa.</p>
-            <div id="mindMapCanvas"><div id="mindMapContainer"></div></div>
+            <h2 class="text-2xl font-semibold text-gray-700 mb-2">2. Organizza la tua Strategia</h2>
+            <p class="text-gray-600 mb-6 text-center">Trascina le idee nelle colonne giuste. Usa i pulsanti per espandere il tuo piano.</p>
+            <div id="board" class="board"></div>
             <div id="mindMapControls" class="text-center mt-8 space-y-4">
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
-                    <button data-action="add-manual" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700">✍️ Amplia con le Tue Keyword</button>
+                    <button data-action="add-manual" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700">✍️ Aggiungi le Tue Keyword</button>
                     <button data-action="expand-ai" class="w-full md:w-auto text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 px-4 rounded-full font-semibold flex items-center gap-2 justify-center">✨ Chiedi 1 Idea all'AI</button>
                 </div>
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
@@ -162,12 +118,10 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- ELEMENTI DOM ---
         const wizardDiv = document.getElementById('wizard');
         const generateMapBtn = document.getElementById('generateMapBtn');
         const mindMapDiv = document.getElementById('mindMap');
-        const mindMapCanvas = document.getElementById('mindMapCanvas');
-        const mindMapContainer = document.getElementById('mindMapContainer');
+        const board = document.getElementById('board');
         const mindMapControls = document.getElementById('mindMapControls');
         const generateCalendarBtn = document.getElementById('generateCalendarBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -180,187 +134,121 @@
 
         // --- STATO ---
         let userProfile = {};
-        let nodes = [];
-        let lines = [];
-        let zoom = 1;
-        let isPanning = false;
-        let panStart = {x: 0, y: 0}, viewStart = {x: 0, y: 0};
-
+        let boardData = {};
+        
         // --- FUNZIONI HELPER ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
-        // --- FUNZIONE PER AGGIORNARE LE LINEE ---
-        function updateAllLines() {
-            lines.forEach(line => line.position());
-        }
+        // --- LOGICA LAVAGNA A COLONNE ---
+        function renderBoard() {
+            board.innerHTML = '';
+            const columnStyles = {
+                landing: { title: 'Contenuto Principale', color: 'bg-green-100' },
+                pillar: { title: 'Contenuto Pillar', color: 'bg-orange-100' },
+                support: { title: 'Contenuti di Supporto', color: 'bg-gray-200' },
+                new: { title: 'Nuove Idee', color: 'bg-blue-100' }
+            };
 
-        // --- LOGICA MAPPA DINAMICA ---
-        function addNodeToMap(nodeData) {
-            const nodeId = `node-${nodes.length}`;
-            const nodeEl = document.createElement('div');
-            nodeEl.className = 'mindmap-node';
-            nodeEl.id = nodeId;
-            nodeEl.style.left = `${nodeData.x}px`;
-            nodeEl.style.top = `${nodeData.y}px`;
-            nodeEl.style.backgroundColor = nodeData.color;
+            Object.keys(boardData).forEach(columnId => {
+                const columnInfo = columnStyles[columnId] || { title: 'Colonna', color: 'bg-gray-200'};
+                const columnEl = document.createElement('div');
+                columnEl.className = 'board-column';
+                columnEl.innerHTML = `<h3 class="font-bold p-2 text-gray-700">${columnInfo.title}</h3><div id="column-${columnId}" class="card-list"></div>`;
+                board.appendChild(columnEl);
 
-            nodeEl.innerHTML = `
-                <p contenteditable="true" class="font-bold text-gray-800 p-1">${nodeData.titolo}</p>
-                <p class="text-xs text-gray-500 mt-1"><code>${nodeData.keyword}</code></p>
-                <div class="node-connector"></div>
-                <div class="color-palette">
-                    <div class="color-dot" style="background-color: #dcfce7;" data-color="#dcfce7"></div>
-                    <div class="color-dot" style="background-color: #ffedd5;" data-color="#ffedd5"></div>
-                    <div class="color-dot" style="background-color: #e2e8f0;" data-color="#e2e8f0"></div>
-                </div>`;
-            
-            mindMapContainer.appendChild(nodeEl);
-            
-            nodeData.el = nodeEl;
-            nodeData.id = nodeId;
-            nodeData.draggable = new PlainDraggable(nodeEl, { onMove: updateAllLines });
-            nodes.push(nodeData);
+                const cardListEl = columnEl.querySelector(`#column-${columnId}`);
+                boardData[columnId].forEach(cardData => {
+                    cardListEl.appendChild(createCard(cardData, columnInfo.color));
+                });
 
-            nodeEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                document.querySelectorAll('.mindmap-node').forEach(n => n.classList.remove('selected'));
-                nodeEl.classList.add('selected');
-            });
-            
-            nodeEl.querySelector('p[contenteditable]').addEventListener('blur', (e) => {
-                const updatedTitle = e.target.textContent.trim();
-                const nodeToUpdate = nodes.find(n => n.id === nodeId);
-                if (nodeToUpdate) {
-                    nodeToUpdate.titolo = updatedTitle;
-                }
-            });
+                new Sortable(cardListEl, {
+                    group: 'shared',
+                    animation: 150,
+                    onEnd: (evt) => {
+                        const cardId = evt.item.dataset.id;
+                        const newColumnId = evt.to.id.replace('column-', '');
+                        const oldColumnId = evt.from.id.replace('column-', '');
 
-            const connector = nodeEl.querySelector('.node-connector');
-            connector.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                const tempLine = new LeaderLine(connector, mindMapCanvas, {color: '#cbd5e1', dash: {animation: true}, endPlug: 'behind'});
-                function onMouseMove(moveEvent) {
-                    const rect = mindMapContainer.getBoundingClientRect();
-                    const x = (moveEvent.clientX - rect.left) / zoom;
-                    const y = (moveEvent.clientY - rect.top) / zoom;
-                    tempLine.end = LeaderLine.pointAnchor(mindMapContainer, {x: x, y: y});
-                }
-                function onMouseUp(upEvent) {
-                    tempLine.remove();
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                    const targetEl = upEvent.target.closest('.mindmap-node');
-                    if (targetEl && targetEl !== nodeEl) {
-                        const newLine = new LeaderLine(nodeEl, targetEl, {color: '#64748b', size: 2, endPlug: 'arrow1'});
-                        lines.push(newLine);
-                        // Aggiunge la possibilità di cancellare la linea
-                        newLine.line.addEventListener('click', () => {
-                            newLine.remove();
-                            lines = lines.filter(l => l !== newLine);
-                        });
+                        // Trova e sposta il dato nell'oggetto boardData
+                        let movedCard;
+                        const oldColumnCards = boardData[oldColumnId];
+                        const cardIndex = oldColumnCards.findIndex(card => card.id == cardId);
+                        if (cardIndex > -1) {
+                            movedCard = oldColumnCards.splice(cardIndex, 1)[0];
+                        }
+                        
+                        if (movedCard) {
+                             boardData[newColumnId].splice(evt.newDraggableIndex, 0, movedCard);
+                        }
+                         // Rirenderizza per aggiornare i colori
+                        renderBoard();
                     }
-                }
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            });
-
-            nodeEl.querySelector('.color-palette').addEventListener('click', (e) => {
-                if (e.target.classList.contains('color-dot')) {
-                    e.stopPropagation();
-                    nodeEl.style.backgroundColor = e.target.dataset.color;
-                    const nodeToUpdate = nodes.find(n => n.id === nodeId);
-                    if(nodeToUpdate) nodeToUpdate.color = e.target.dataset.color;
-                }
+                });
             });
         }
         
-        // --- GESTIONE ZOOM E PAN ---
-        mindMapCanvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const rect = mindMapCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const newZoom = zoom * (1 - e.deltaY * 0.001);
-            const clampedZoom = Math.min(Math.max(.2, newZoom), 2);
+        let cardIdCounter = 0;
+        function createCard(cardData, color) {
+            const cardEl = document.createElement('div');
+            cardData.id = cardData.id || cardIdCounter++;
+            cardEl.dataset.id = cardData.id;
+            cardEl.className = `content-card ${color}`;
+            cardEl.innerHTML = `
+                <p class="font-semibold text-gray-800">${cardData.titolo}</p>
+                <p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>
+            `;
+            return cardEl;
+        }
 
-            const dx = x - parseFloat(mindMapContainer.style.left || 0);
-            const dy = y - parseFloat(mindMapContainer.style.top || 0);
-
-            const newLeft = x - (dx * (clampedZoom / zoom));
-            const newTop = y - (dy * (clampedZoom / zoom));
-            
-            zoom = clampedZoom;
-
-            mindMapContainer.style.transform = `scale(${zoom})`;
-            mindMapContainer.style.left = `${newLeft}px`;
-            mindMapContainer.style.top = `${newTop}px`;
-            
-            updateAllLines();
-        });
-        
-        document.body.addEventListener('keydown', (e) => { if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { isPanning = true; mindMapCanvas.classList.add('panning'); panStart = { x: e.clientX, y: e.clientY }; viewStart = { x: parseFloat(mindMapContainer.style.left || 0), y: parseFloat(mindMapContainer.style.top || 0) }; }});
-        document.body.addEventListener('keyup', (e) => { if (e.code === 'Space') { isPanning = false; mindMapCanvas.classList.remove('panning'); }});
-        
-        mindMapCanvas.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.mindmap-node')) return;
-            if(isPanning) {
-                 panStart = { x: e.clientX, y: e.clientY };
-                 viewStart = { x: parseFloat(mindMapContainer.style.left || 0), y: parseFloat(mindMapContainer.style.top || 0) };
+        function addCardsToBoard(cards, columnId = 'new') {
+            if (!boardData[columnId]) {
+                boardData[columnId] = [];
             }
-        });
+            cards.forEach(card => boardData[columnId].push(card));
+            renderBoard();
+        }
 
-        mindMapCanvas.addEventListener('mousemove', (e) => {
-            if (isPanning) {
-                const dx = e.clientX - panStart.x;
-                const dy = e.clientY - panStart.y;
-                mindMapContainer.style.left = `${viewStart.x + dx}px`;
-                mindMapContainer.style.top = `${viewStart.y + dy}px`;
-                updateAllLines();
-            }
-        });
-        
         // --- GESTIONE DATI E CHIAMATE AI ---
         generateMapBtn.addEventListener('click', async () => {
             const professione = professioneInput.value.trim(); const serviziText = serviziInput.value.trim(); const servizi = serviziText ? serviziText.split(',').map(s => s.trim()) : []; const citta = document.getElementById('citta').value.trim(); const domanda_frequente = document.getElementById('domanda_frequente').value.trim();
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
             generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
-            let optimizedQuestion;
             try {
                 const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
                 const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
-                if (!optimizeResponse.ok) { throw new Error('API call failed'); }
-                optimizedQuestion = await optimizeResponse.json();
-            } catch (error) {
-                console.warn("Chiamata AI per ottimizzazione domanda fallita, uso un fallback.");
-                optimizedQuestion = { titolo: capitalizeFirstLetter(domanda_frequente), keyword: domanda_frequente.toLowerCase() };
-            }
-            
-            userProfile = { professione, servizi, citta };
-            const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0];
-            nodes = []; lines.forEach(l => l.remove()); lines = []; mindMapContainer.innerHTML = '';
-            mindMapContainer.style.left = '0px'; mindMapContainer.style.top = '0px'; zoom = 1; mindMapContainer.style.transform = `scale(1)`;
-            addNodeToMap({ titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale', x: 400, y: 50, color: '#dcfce7' });
-            addNodeToMap({ titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar', x: 400, y: 200, color: '#ffedd5' });
-            addNodeToMap({ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente', x: 150, y: 350, color: '#e2e8f0' });
-            addNodeToMap({ titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi', x: 650, y: 350, color: '#e2e8f0' });
-            
-            wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
-            generateMapBtn.innerHTML = `Crea Mappa Mentale`; generateMapBtn.disabled = false;
+                if (!optimizeResponse.ok) throw new Error('Errore ottimizzazione domanda.');
+                const optimizedQuestion = await optimizeResponse.json();
+
+                userProfile = { professione, servizi, citta };
+                const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0];
+                boardData = {
+                    landing: [{ titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale' }],
+                    pillar: [{ titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar' }],
+                    support: [{ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente' }, { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi' }],
+                    new: []
+                };
+                wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
+                renderBoard();
+            } catch (error) { showModal('Ooops!', friendlyErrorMessage, false);
+            } finally { generateMapBtn.innerHTML = `Crea Lavagna Strategica`; generateMapBtn.disabled = false; }
         });
+
+        mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = Object.values(boardData).flat(); const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); addCardsToBoard([{...newCluster, tipo: 'Suggerito da AI'}]); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
+        enrichKeywordsBtn.addEventListener('click', async () => { const keywordsText = document.getElementById('manual-keywords').value.trim(); if (!keywordsText) return; const keywords = keywordsText.split('\n').filter(k => k.trim() !== ''); enrichKeywordsBtn.innerHTML = `<div class="loader"></div>`; enrichKeywordsBtn.disabled = true; try { const response = await fetch(`/.netlify/functions/enrich-keywords`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords, userProfile }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); addCardsToBoard(newClusters.map(c => ({...c, tipo: 'Manuale'}))); manualAddModal.classList.add('hidden'); } catch(error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { enrichKeywordsBtn.innerHTML = `Arricchisci con AI`; enrichKeywordsBtn.disabled = false; } });
         
-        mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const existingTitles = nodes.map(n => n.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster, seguendo una logica a topic cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); const lastNodePos = nodes.length > 0 ? {x: nodes[nodes.length - 1].el.offsetLeft, y: nodes[nodes.length - 1].el.offsetTop } : {x: 400, y: 500}; addNodeToMap({ ...newCluster, x: lastNodePos.x + Math.random()*100-50, y: lastNodePos.y + 150, color: '#e2e8f0' }); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
-        enrichKeywordsBtn.addEventListener('click', async () => { const keywordsText = document.getElementById('manual-keywords').value.trim(); if (!keywordsText) return; const keywords = keywordsText.split('\n').filter(k => k.trim() !== ''); enrichKeywordsBtn.innerHTML = `<div class="loader"></div>`; enrichKeywordsBtn.disabled = true; try { const response = await fetch(`/.netlify/functions/enrich-keywords`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords, userProfile }) }); if (!response.ok) throw new Error(); const newClusters = await response.json(); let lastNodePos = nodes.length > 0 ? {x: nodes[nodes.length - 1].el.offsetLeft, y: nodes[nodes.length - 1].el.offsetTop } : {x: 400, y: 500}; newClusters.forEach(cluster => { addNodeToMap({ ...cluster, tipo: 'Manuale', x: lastNodePos.x, y: lastNodePos.y + 150, color: '#e2e8f0' }); lastNodePos.y += 150; }); manualAddModal.classList.add('hidden'); } catch(error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { enrichKeywordsBtn.innerHTML = `Arricchisci con AI`; enrichKeywordsBtn.disabled = false; } });
-        
-        resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); lines.forEach(l => l.remove()); lines = []; nodes = []; mindMapContainer.innerHTML = ''; wizardDiv.scrollIntoView(); });
         generateCalendarBtn.addEventListener('click', () => {
             planTableBody.innerHTML = '';
-            nodes.forEach((item, index) => {
+            const allCards = [
+                ...boardData.landing,
+                ...boardData.pillar,
+                ...boardData.support,
+                ...boardData.new
+            ];
+            allCards.forEach((item, index) => {
                 const row = document.createElement('tr');
                 row.dataset.id = item.id;
-                row.dataset.index = index;
                 row.innerHTML = `<td class="px-6 py-4 text-sm font-medium">${index + 1}</td><td class="px-6 py-4 text-sm text-gray-800">${item.titolo}</td><td class="px-6 py-4 text-sm text-gray-500"><code>${item.keyword}</code></td><td class="px-6 py-4 text-center"><button data-action="write-ai" class="bg-purple-100 text-purple-800 text-xs font-bold py-1 px-2 rounded-full hover:bg-purple-200">🤖 Genera Prompt AI</button></td>`;
                 planTableBody.appendChild(row);
             });
@@ -368,6 +256,8 @@
             detailedPlanDiv.scrollIntoView();
         });
         
+        // --- RESTO DEGLI EVENT LISTENER INVARIATI ---
+        resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
         closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
         closeManualAddModalBtn.addEventListener('click', () => manualAddModal.classList.add('hidden'));
