@@ -250,12 +250,10 @@
             mindMapDiv.classList.remove('hidden');
             detailedPlanDiv.classList.add('hidden');
             
-            // CORREZIONE DEFINITIVA: Renderizza subito e poi aggiorna.
             renderBoard(); 
             generateMapBtn.innerHTML = `Crea Lavagna Strategica`;
             generateMapBtn.disabled = false;
 
-            // Chiamata AI in background per ottimizzare
             const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
             fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) })
                 .then(response => {
