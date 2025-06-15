@@ -92,6 +92,22 @@
         <div id="manualAddModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Aggiungi Contenuti di Supporto</h3><button id="closeManualAddModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6"> <label for="manual-keywords" class="block text-sm font-medium text-gray-700">Inserisci una o più keyword, una per riga.</label> <textarea id="manual-keywords" rows="5" class="mt-1 w-full p-2 border rounded-md" placeholder="es. costo cila roma&#10;migliori materiali ristrutturazione"></textarea> </div> <div class="p-4 border-t bg-white rounded-b-2xl"><button id="enrichKeywordsBtn" class="w-full bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 flex justify-center items-center">Arricchisci con AI</button></div> </div> </div>
         <div id="promptModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter"> <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-3xl w-full h-full max-h-[95vh] flex flex-col"> <div class="p-4 border-b flex justify-between items-center"><h3 class="text-lg font-bold text-gray-800">Genera Materiali AI</h3><button id="closePromptModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button></div> <div class="p-6 overflow-y-auto flex-grow"><div class="space-y-6"><div class="p-4 bg-white rounded-lg border"><h4 class="font-semibold text-gray-800 mb-2">Informazioni Base (per tutti i prompt)</h4><div class="space-y-2"><div><label for="prompt-studio" class="block text-xs font-medium text-gray-600">Nome Studio / Professionista</label><input type="text" id="prompt-studio" class="mt-1 w-full p-2 border rounded-md text-sm"></div><div><label for="prompt-meccanismo" class="block text-xs font-medium text-gray-600">Approccio / Meccanismo Unico</label><input type="text" id="prompt-meccanismo" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Es: Specializzati in ristrutturazioni chiavi in mano..."></div><div><label for="prompt-sitemap" class="block text-xs font-medium text-gray-600">URL della Sitemap (o pagine principali)</label><textarea id="prompt-sitemap" rows="3" class="mt-1 w-full p-2 border rounded-md text-sm" placeholder="Incolla qui gli URL, uno per riga..."></textarea></div></div></div><div id="prompt-sections-container" class="space-y-4"></div></div></div> </div> </div>
 
+        <!-- Modale per Input Personalizzato -->
+        <div id="inputModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden z-50 modal-enter">
+            <div class="bg-gray-50 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col">
+                <div class="p-4 border-b">
+                    <h3 id="inputModalTitle" class="text-lg font-bold text-gray-800"></h3>
+                </div>
+                <div class="p-6">
+                    <input type="text" id="inputModalField" class="w-full p-2 border rounded-md">
+                </div>
+                <div class="p-4 border-t bg-white rounded-b-2xl flex justify-end gap-4">
+                    <button id="inputModalCancelBtn" class="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">Annulla</button>
+                    <button id="inputModalConfirmBtn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700">Conferma</button>
+                </div>
+            </div>
+        </div>
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // --- DOM ELEMENTS ---
@@ -110,17 +126,28 @@
         const messageModal = document.getElementById('messageModal'); const modalTitle = document.getElementById('modalTitle'); const modalMessage = document.getElementById('modalMessage'); const closeModalBtn = document.getElementById('closeModalBtn');
         const manualAddModal = document.getElementById('manualAddModal'); const closeManualAddModalBtn = document.getElementById('closeManualAddModalBtn'); const enrichKeywordsBtn = document.getElementById('enrichKeywordsBtn');
         const promptModal = document.getElementById('promptModal'); const promptSectionsContainer = document.getElementById('prompt-sections-container'); const closePromptModalBtn = document.getElementById('closePromptModalBtn');
+        const inputModal = document.getElementById('inputModal'); const inputModalTitle = document.getElementById('inputModalTitle'); const inputModalField = document.getElementById('inputModalField'); const inputModalCancelBtn = document.getElementById('inputModalCancelBtn'); const inputModalConfirmBtn = document.getElementById('inputModalConfirmBtn');
 
         // --- STATE ---
         let userProfile = {};
         let mapData = {};
         let cardIdCounter = 0;
+        let onInputConfirm = null;
         
         // --- HELPERS ---
         const capitalizeFirstLetter = (string) => string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
         const showModal = (title, message, isError = true) => { modalTitle.textContent = title; modalMessage.innerHTML = message; modalTitle.className = isError ? 'text-xl font-bold text-red-600 mb-4' : 'text-xl font-bold text-yellow-500 mb-4'; messageModal.classList.remove('hidden'); };
         const friendlyErrorMessage = `<p>L'AI è un po' sovraccarica!</p><p class="mt-2">A volte, a causa dell'intenso utilizzo, può esserci un ritardo. Attendi un istante e riprova.</p>`;
         
+        function showInputModal(title, placeholder, confirmCallback) {
+            inputModalTitle.textContent = title;
+            inputModalField.placeholder = placeholder;
+            inputModalField.value = '';
+            onInputConfirm = confirmCallback;
+            inputModal.classList.remove('hidden');
+            inputModalField.focus();
+        }
+
         // --- CORE LOGIC ---
         function createCard(cardData, cardClass) {
             const cardEl = document.createElement('div');
@@ -134,7 +161,7 @@
             return cardEl;
         }
 
-        function findCardData(cardId) {
+        function findCardById(cardId) {
             if (mapData.landing && mapData.landing.id === cardId) return mapData.landing;
             for (const pillar of mapData.pillars) {
                 if (pillar.id === cardId) return pillar;
@@ -274,15 +301,14 @@
                 manualAddModal.classList.remove('hidden');
                 document.getElementById('manual-keywords').value = '';
             } else if (action === 'add-pillar') {
-                const newPillarName = prompt("Inserisci il nome del nuovo Pillar (es: 'Pratiche Catastali'):");
-                if (newPillarName && newPillarName.trim() !== '') {
+                 showInputModal("Aggiungi un nuovo Pillar", "Es: Pratiche Catastali", (newPillarName) => {
                     mapData.pillars.push({
                         titolo: `Guida a ${capitalizeFirstLetter(newPillarName)} a ${userProfile.citta}`,
                         keyword: `guida ${newPillarName.toLowerCase()} ${userProfile.citta.toLowerCase()}`,
                         clusters: []
                     });
                     renderStrategicMap();
-                }
+                });
             } else if (action === 'expand-ai') {
                 button.innerHTML = `<div class="loader"></div>`; button.disabled = true;
                 updateDataFromDOM();
@@ -329,6 +355,18 @@
             detailedPlanDiv.scrollIntoView();
         });
         
+        // --- EVENT LISTENERS MODALI ---
+        inputModalConfirmBtn.addEventListener('click', () => {
+            if (onInputConfirm) {
+                const value = inputModalField.value.trim();
+                if (value) {
+                    onInputConfirm(value);
+                    inputModal.classList.add('hidden');
+                    onInputConfirm = null;
+                }
+            }
+        });
+        inputModalCancelBtn.addEventListener('click', () => { inputModal.classList.add('hidden'); onInputConfirm = null; });
         resetBtn.addEventListener('click', () => { wizardDiv.classList.remove('hidden'); mindMapDiv.classList.add('hidden'); detailedPlanDiv.classList.add('hidden'); wizardDiv.scrollIntoView(); });
         closeModalBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
         closePromptModalBtn.addEventListener('click', () => promptModal.classList.add('hidden'));
