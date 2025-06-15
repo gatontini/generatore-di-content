@@ -10,8 +10,7 @@ exports.handler = async function (event, context) {
     const { contentItem, nomeStudio, meccanismoUnico, sitemapUrls } = JSON.parse(event.body);
 
     // COSTRUZIONE DIRETTA DEL PROMPT DI ALTA QUALITÀ
-    // Questo metodo è istantaneo e non rischia timeout.
-    // Usiamo il template fornito dall'utente come base.
+    // Questo metodo è istantaneo e non rischia timeout, usando il tuo template come base.
     const prompt = `
 Agisci come un copywriter SEO con 10 anni di esperienza nel settore edile italiano, specializzato nel creare contenuti che convertono per lo studio '${nomeStudio}'. L'approccio dello studio si basa su: '${meccanismoUnico}'. Il tuo tono di voce deve essere professionale, autorevole ma anche rassicurante e facile da capire per un pubblico di non addetti ai lavori. Chi scrive è il team dello studio.
 
