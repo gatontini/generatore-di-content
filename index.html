@@ -159,9 +159,11 @@
                 board.appendChild(columnEl);
 
                 const cardListEl = columnEl.querySelector(`#column-${columnId}`);
-                boardData[columnId].forEach(cardData => {
-                    cardListEl.appendChild(createCard(cardData, columnInfo.color));
-                });
+                if (boardData[columnId]) {
+                    boardData[columnId].forEach(cardData => {
+                        cardListEl.appendChild(createCard(cardData, columnInfo.color));
+                    });
+                }
 
                 new Sortable(cardListEl, {
                     group: 'shared',
@@ -197,7 +199,6 @@
                 <p contenteditable="true" data-action="edit-title" class="font-semibold text-gray-800">${cardData.titolo}</p>
                 <p class="text-xs text-gray-600 mt-1"><code>${cardData.keyword}</code></p>`;
             
-            // CORREZIONE BUG: Aggiorna i dati quando il titolo viene modificato
             cardEl.querySelector('p[contenteditable]').addEventListener('blur', (e) => {
                  const newTitle = e.target.textContent.trim();
                  const cardId = cardEl.dataset.id;
@@ -226,31 +227,52 @@
             if (!professione || !citta || servizi.length === 0 || !domanda_frequente) { showModal('Attenzione!', 'Assicurati di compilare tutti i campi.'); return; }
             generateMapBtn.innerHTML = `<div class="loader"></div>`; generateMapBtn.disabled = true;
             
-            // CORREZIONE: Isoliamo la chiamata API e usiamo un fallback in caso di errore
-            let optimizedQuestion;
-            try {
-                const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
-                const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
-                if (!optimizeResponse.ok) {
-                    throw new Error('API call to optimize-question failed');
-                }
-                optimizedQuestion = await optimizeResponse.json();
-            } catch (error) {
-                console.warn("Chiamata AI per ottimizzazione domanda fallita, uso un fallback.", error);
-                optimizedQuestion = { titolo: capitalizeFirstLetter(domanda_frequente), keyword: domanda_frequente.toLowerCase() };
-            }
-
+            // CORREZIONE: Crea la board immediatamente con un fallback
             userProfile = { professione, servizi, citta };
-            const cittaC = capitalizeFirstLetter(citta); const s1 = servizi[0];
+            const cittaC = capitalizeFirstLetter(citta);
+            const s1 = servizi[0];
+            const s2 = servizi[1];
+
+            const fallbackQuestion = { titolo: capitalizeFirstLetter(domanda_frequente), keyword: domanda_frequente.toLowerCase() };
+
             boardData = {
                 landing: [{ titolo: `${capitalizeFirstLetter(professione)} a ${cittaC}`, keyword: `${professione.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Landing Page Locale' }],
                 pillar: [{ titolo: `Guida a ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `guida ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto Pillar' }],
-                support: [{ titolo: optimizedQuestion.titolo, keyword: optimizedQuestion.keyword, tipo: 'Domanda Frequente' }, { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi' }],
+                support: [
+                    { ...fallbackQuestion, tipo: 'Domanda Frequente' }, 
+                    { titolo: `Costo ${capitalizeFirstLetter(s1)} a ${cittaC}`, keyword: `costo ${s1.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Analisi Costi' },
+                    s2 ? { titolo: `Focus su ${capitalizeFirstLetter(s2)} a ${cittaC}`, keyword: `${s2.toLowerCase()} ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto' } : { titolo: `Bonus Edilizi a ${cittaC}`, keyword: `bonus edilizi ${citta.toLowerCase()}`, tipo: 'Contenuto di Supporto' }
+                ],
                 new: []
             };
-            wizardDiv.classList.add('hidden'); mindMapDiv.classList.remove('hidden'); detailedPlanDiv.classList.add('hidden');
-            renderBoard();
-            generateMapBtn.innerHTML = `Crea Lavagna Strategica`; generateMapBtn.disabled = false;
+
+            wizardDiv.classList.add('hidden');
+            mindMapDiv.classList.remove('hidden');
+            detailedPlanDiv.classList.add('hidden');
+            renderBoard(); // Disegna subito la board
+            generateMapBtn.innerHTML = `Crea Lavagna Strategica`;
+            generateMapBtn.disabled = false;
+            
+            // Ora, prova a ottimizzare in background
+            try {
+                const optimizePrompt = `Analizza la domanda di un utente "${domanda_frequente}" per un professionista che opera a "${citta}". Normalizza la domanda in un titolo SEO efficace, assicurandoti che la città sia presente una sola volta. Estrai anche la keyword principale. Rispondi solo con un oggetto JSON con le chiavi "titolo" e "keyword".`;
+                const optimizeResponse = await fetch(`/.netlify/functions/optimize-question`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: optimizePrompt }) });
+                if (optimizeResponse.ok) {
+                    const optimizedQuestion = await optimizeResponse.json();
+                    // Trova e aggiorna la card della domanda frequente
+                    const questionCard = boardData.support.find(card => card.keyword === domanda_frequente.toLowerCase());
+                    if (questionCard) {
+                        questionCard.titolo = optimizedQuestion.titolo;
+                        questionCard.keyword = optimizedQuestion.keyword;
+                        renderBoard(); // Ridisegna la board con i dati aggiornati
+                    }
+                } else {
+                    throw new Error('API call to optimize-question failed');
+                }
+            } catch (error) {
+                console.warn("Chiamata AI per ottimizzazione domanda fallita. L'utente userà il fallback.", error);
+                // Non mostriamo l'errore all'utente, la board è già visibile
+            }
         });
 
         mindMapControls.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button || !button.dataset.action) return; const { action } = button.dataset; if (action === 'add-manual') { manualAddModal.classList.remove('hidden'); document.getElementById('manual-keywords').value = ''; } else if (action === 'expand-ai') { button.innerHTML = `<div class="loader"></div>`; button.disabled = true; const allCards = Object.values(boardData).flat(); const existingTitles = allCards.map(c => c.titolo).join(', '); const prompt = `Sei un esperto SEO per il settore edile. Profilo: ${userProfile.professione} a ${userProfile.citta}, servizi: ${userProfile.servizi.join(', ')}. Contenuti esistenti: ${existingTitles}. Suggerisci UNA idea per un articolo cluster. Fornisci: "titolo", "keyword", "tipo", e "sinossi". Rispondi solo con un oggetto JSON.`; try { const response = await fetch(`/.netlify/functions/generate-content-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) }); if (!response.ok) throw new Error(); const newCluster = await response.json(); addCardsToBoard([{...newCluster, tipo: 'Suggerito da AI'}]); } catch (error) { showModal('Ooops!', friendlyErrorMessage, false); } finally { button.innerHTML = '✨ Chiedi 1 Idea all\'AI'; button.disabled = false; } } });
