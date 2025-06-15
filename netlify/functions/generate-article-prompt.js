@@ -1,92 +1,31 @@
-// Questo è il nuovo codice per: /netlify/functions/generate-article-prompt.js
-
 exports.handler = async function (event, context) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
+  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
   try {
     const { contentItem, nomeStudio, meccanismoUnico, sitemapUrls } = JSON.parse(event.body);
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      throw new Error("La chiave API di OpenAI non è stata impostata.");
-    }
-    
-    // Questo è il prompt che genera il "super-prompt" per l'utente.
-    // È stato riportato alla versione originale e più dettagliata.
-    const metaPrompt = `
-Sei un esperto di Content Strategy e SEO per il settore edile in Italia. Il tuo compito è generare un prompt completo e dettagliato che un professionista potrà poi usare nella sua AI preferita (ChatGPT, Claude, Gemini) per scrivere un articolo di blog di alta qualità.
-
-Il prompt che generi deve essere pronto per il copia-incolla e contenere TUTTI i seguenti punti, fornendo solo testo pulito, senza alcun tag HTML.
-
-**1. Ruolo e Tono di Voce:**
-Inizia il prompt con questa frase esatta: "Agisci come un copywriter SEO con 10 anni di esperienza nel settore edile italiano, specializzato nel creare contenuti che convertono per lo studio '${nomeStudio}'. L'approccio dello studio si basa su: '${meccanismoUnico}'. Il tuo tono di voce deve essere professionale, autorevole ma anche rassicurante e facile da capire per un pubblico di non addetti ai lavori."
+    const prompt = `**1. Ruolo e Tono di Voce:**
+Agisci come un copywriter SEO con 10 anni di esperienza nel settore edile italiano, specializzato nel creare contenuti che convertono per lo studio '${nomeStudio}'. L'approccio dello studio si basa su: '${meccanismoUnico}'. Il tuo tono di voce deve essere professionale, autorevole ma anche rassicurante e facile da capire per un pubblico di non addetti ai lavori.
 
 **2. Istruzioni sul Contenuto:**
-Includi una sezione chiara con i dati per l'articolo:
 - Titolo (H1 OBBLIGATORIO): "${contentItem.titolo}"
 - Keyword Principale: "${contentItem.keyword}"
 
 **3. Regole SEO Obbligatorie per l'Articolo:**
-Specifica queste regole:
-- La keyword principale deve apparire nel primo paragrafo (entro le prime 100 parole).
-- La keyword principale deve essere presente in almeno un sottotitolo <h2>.
-- La keyword principale deve essere ripetuta nel testo in modo naturale 2-3 volte.
-- Includi 2-3 keyword correlate pertinenti (es. sinonimi o termini correlati).
+- Inserisci la keyword principale nel primo paragrafo, in almeno un sottotitolo <h2> e 2-3 volte nel testo.
+- Includi 2-3 keyword correlate pertinenti.
 
 **4. Struttura dell'Articolo:**
-Richiedi una struttura precisa:
-- Un'introduzione che catturi l'attenzione.
-- Un corpo del testo diviso in 3-4 sezioni principali, ognuna introdotta da un sottotitolo <h2>.
-- L'uso di elenchi puntati (bullet point) per migliorare la leggibilità, usando il trattino (-) per ogni punto.
-- Una conclusione che riassuma i punti chiave.
+- Introduzione che catturi l'attenzione.
+- Corpo del testo diviso in 3-4 sezioni con sottotitoli <h2>.
+- Usa elenchi puntati (-) per la leggibilità.
+- Conclusione che riassuma e inviti al contatto.
 
-**5. Strategia di Linking (Interno ed Esterno):**
-Aggiungi queste istruzioni, che sono FONDAMENTALI:
-- "Analizza la sitemap fornita e inserisci 2-3 link interni in modo naturale e contestuale. Per farlo, identifica le parole chiave nel testo (anchor text) più pertinenti e trasformale in un link. **Esempio: 'Una delle pratiche più comuni è la CILA (Comunicazione Inizio Lavori Asseverata), ideale per...'. In questo caso, trasforma la parola 'CILA' in un link che punta alla pagina appropriata.** Ecco le pagine disponibili dalla sitemap: \n${sitemapUrls}\n."
-- "Inserisci 1-2 link esterni a fonti autorevoli e non concorrenti (es. Wikipedia, sito del Comune, normative ufficiali come il Testo Unico Edilizia) per aumentare l'affidabilità (E-A-T)."
+**5. Strategia di Linking:**
+- Analizza la sitemap fornita e inserisci 2-3 link interni naturali. Pagine disponibili: \n${sitemapUrls}\n.
+- Inserisci 1-2 link esterni a fonti autorevoli (es. Wikipedia, sito del Comune, normative).
 
 **6. Tono e Vendita Elegante:**
-Includi questa direttiva fondamentale:
-- "Il contenuto deve essere informativo ed esaustivo. NON consigliare mai al lettore di 'cercare su Google', 'verificare online' o 'controllare le recensioni'. L'obiettivo è posizionare lo studio '${nomeStudio}' come la soluzione ideale e l'unica fonte di cui fidarsi. La conclusione deve avere una call-to-action chiara che inviti a contattare lo studio per una consulenza, sfruttando il suo approccio unico: '${meccanismoUnico}'."
+- Il contenuto deve essere informativo ed esaustivo. NON consigliare di 'cercare su Google' o 'verificare online'. Posiziona lo studio '${nomeStudio}' come la soluzione ideale. La conclusione deve avere una call-to-action chiara per una consulenza.
 `;
-
-    // Ora inviamo questo meta-prompt all'AI per ottenere il prompt finale per l'utente.
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: metaPrompt }],
-        temperature: 0.5,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return { 
-        statusCode: response.status, 
-        body: JSON.stringify({ error: 'Errore durante la chiamata a OpenAI.' }) 
-      };
-    }
-
-    const data = await response.json();
-    const prompt = data.choices[0].message.content;
-    
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ prompt }),
-    };
-
-  } catch (error) {
-    console.error("Errore nella funzione:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Errore interno del server.' }),
-    };
-  }
+    return { statusCode: 200, body: JSON.stringify({ prompt }) };
+  } catch (error) { return { statusCode: 500, body: JSON.stringify({ error: 'Errore interno.' }) };}
 };
