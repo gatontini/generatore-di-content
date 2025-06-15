@@ -16,7 +16,7 @@ exports.handler = async function (event, context) {
     const metaPrompt = `
 Sei un esperto di Content Strategy e SEO per il settore edile in Italia. Il tuo compito è generare un prompt completo e dettagliato che un professionista potrà poi usare nella sua AI preferita (ChatGPT, Claude, Gemini) per scrivere un articolo di blog di alta qualità.
 
-Il prompt che generi deve essere pronto per il copia-incolla e contenere TUTTI i seguenti punti:
+Il prompt che generi deve essere pronto per il copia-incolla e contenere TUTTI i seguenti punti, fornendo solo testo pulito, senza alcun tag HTML.
 
 **1. Ruolo e Tono di Voce:**
 Inizia il prompt con questa frase esatta: "Agisci come un copywriter SEO con 10 anni di esperienza nel settore edile italiano, specializzato nel creare contenuti che convertono per lo studio '${nomeStudio}'. L'approccio dello studio si basa su: '${meccanismoUnico}'. Il tuo tono di voce deve essere professionale, autorevole ma anche rassicurante e facile da capire per un pubblico di non addetti ai lavori."
@@ -36,20 +36,13 @@ Specifica queste regole:
 **4. Struttura dell'Articolo:**
 Richiedi una struttura precisa:
 - Un'introduzione che catturi l'attenzione.
-- Un corpo del testo diviso in 3-4 sezioni principali, ognuna con un sottotitolo <h2>.
-- **Formattazione Liste (Regola Fondamentale):** Quando usi elenchi puntati, formatta il codice HTML correttamente su più righe, in questo modo:
-  \`\`\`html
-  <ul>
-    <li>Punto uno.</li>
-    <li>Punto due.</li>
-  </ul>
-  \`\`\`
-  NON scrivere i tag <ul> e <li> tutti sulla stessa riga.
+- Un corpo del testo diviso in 3-4 sezioni principali, ognuna introdotta da un sottotitolo <h2>.
+- L'uso di elenchi puntati (bullet point) per migliorare la leggibilità, usando il trattino (-) per ogni punto.
 - Una conclusione che riassuma i punti chiave.
 
 **5. Strategia di Linking (Interno ed Esterno):**
 Aggiungi queste istruzioni, che sono FONDAMENTALI:
-- "Task di analisi per i link interni: ti verrà fornito di seguito del testo grezzo proveniente da una sitemap. Il tuo primo compito è analizzare questo testo, estrarre solo la lista pulita degli URL (ignorando date, priorità, ecc.), e poi, da questa lista, selezionare solo i 2-3 URL più pertinenti da usare come link interni per l'articolo corrente. Testo grezzo della sitemap: \n${sitemapUrls}\n. Una volta scelti gli URL pertinenti, inseriscili nel testo in modo naturale e contestuale. **Esempio di come fare: INVECE di scrivere 'Per saperne di più sulla CILA, visita la nostra pagina: [URL]', DEVI scrivere 'Una delle pratiche più comuni è la [LINK alla pagina sulla CILA]CILA (Comunicazione Inizio Lavori Asseverata)[FINE LINK], ideale per...'.**"
+- "Analizza la sitemap fornita e inserisci 2-3 link interni in modo naturale e contestuale. Per farlo, identifica le parole chiave nel testo (anchor text) più pertinenti e trasformale in un link. **Esempio: 'Una delle pratiche più comuni è la CILA (Comunicazione Inizio Lavori Asseverata), ideale per...'. In questo caso, trasforma la parola 'CILA' in un link che punta alla pagina appropriata.** Ecco le pagine disponibili dalla sitemap: \n${sitemapUrls}\n."
 - "Inserisci 1-2 link esterni a fonti autorevoli e non concorrenti (es. Wikipedia, sito del Comune, normative ufficiali come il Testo Unico Edilizia) per aumentare l'affidabilità (E-A-T)."
 
 **6. Tono e Vendita Elegante:**
